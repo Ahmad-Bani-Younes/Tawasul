@@ -236,50 +236,54 @@ namespace Tawasul.Controllers
         }
 
 
-        // ✅ إنشاء أو فتح محادثة خاصة
-[HttpPost]
-public async Task<IActionResult> StartChat(string targetUserId)
-{
-    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (string.IsNullOrEmpty(targetUserId) || currentUserId == targetUserId)
-        return BadRequest();
+        // ... (داخل ChatController.cs)
 
-    // 1. هل توجد محادثة (Type 0) بينهما من قبل؟
-    // (هذا الاستعلام معقد قليلاً لكنه دقيق)
-    var existingConversation = await _db.Conversations
-        .Where(c => c.Type == 0 && // 0 = محادثة خاصة
-                    c.Members.Any(m => m.UserId == currentUserId) &&
-                    c.Members.Any(m => m.UserId == targetUserId))
-        .FirstOrDefaultAsync();
+        // ✅ إنشاء أو فتح محادثة خاصة (النسخة الصحيحة)
+        [HttpPost]
+        public async Task<IActionResult> StartChat(string targetUserId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(targetUserId) || currentUserId == targetUserId)
+                return BadRequest();
 
-    if (existingConversation != null)
+            // 1. هل توجد محادثة (Type 0) بينهما من قبل؟
+            // 🔽🔽 (هذا هو التعديل) 🔽🔽
+            var existingConversation = await _db.Conversations
+                .Include(c => c.Members) // ⬅️ (1) أضفنا Include
+                .Where(c => c.Type == ConversationType.Direct && // ⬅️ (2) قارنا بـ Enum
+                            c.Members.Any(m => m.UserId == currentUserId) &&
+                            c.Members.Any(m => m.UserId == targetUserId))
+                .FirstOrDefaultAsync();
+            // 🔼🔼 (انتهى التعديل) 🔼🔼
+
+            if (existingConversation != null)
+            {
+                // 2. إذا موجودة: أعد الـ ID الخاص بها
+                return Json(new { conversationId = existingConversation.Id });
+            }
+
+            // 3. إذا غير موجودة: أنشئ واحدة جديدة
+            var conversation = new Conversation
+            {
+                Type = ConversationType.Direct, // ⬅️ (3) استخدم Enum هنا أيضاً
+                CreatedByUserId = currentUserId!,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            // 4. أضف العضوين
+            var members = new List<ConversationMember>
     {
-        // 2. إذا موجودة: أعد الـ ID الخاص بها
-        return Json(new { conversationId = existingConversation.Id });
-    }
-
-    // 3. إذا غير موجودة: أنشئ واحدة جديدة
-    var conversation = new Conversation
-    {
-        Type = 0, // محادثة خاصة
-        CreatedByUserId = currentUserId,
-        CreatedAtUtc = DateTime.UtcNow
-    };
-
-    // 4. أضف العضوين
-    var members = new List<ConversationMember>
-    {
-        new ConversationMember { UserId = currentUserId, JoinedAtUtc = DateTime.UtcNow },
+        new ConversationMember { UserId = currentUserId!, JoinedAtUtc = DateTime.UtcNow },
         new ConversationMember { UserId = targetUserId, JoinedAtUtc = DateTime.UtcNow }
     };
 
-    conversation.Members = members;
+            conversation.Members = members;
 
-    _db.Conversations.Add(conversation);
-    await _db.SaveChangesAsync();
+            _db.Conversations.Add(conversation);
+            await _db.SaveChangesAsync();
 
-    // 5. أعد الـ ID الجديد
-    return Json(new { conversationId = conversation.Id });
-}
+            // 5. أعد الـ ID الجديد
+            return Json(new { conversationId = conversation.Id });
+        }
     }
 }
