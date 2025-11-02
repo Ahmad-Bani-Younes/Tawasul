@@ -1,0 +1,36 @@
+﻿@model List<Tawasul.Models.ViewModels.GroupListViewModel>
+@{
+    ViewData["Title"] = "المجموعات";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-3">المجموعات</h3>
+
+    <a href="@Url.Action("Create")" class="btn btn-primary mb-3">➕ إنشاء مجموعة جديدة</a>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">لا توجد مجموعات بعد.</div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var g in Model)
+            {
+                <a href="@Url.Action("Details", new { id = g.Id })"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>@g.Title</strong>
+                        <div class="text-muted small">
+                            الأعضاء: @g.MembersCount — أنشأها @g.CreatorName
+                        </div>
+                    </div>
+                    <small class="text-secondary">
+                        @g.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy hh:mm tt")
+                    </small>
+                </a>
+            }
+        </div>
+    }
+</div>

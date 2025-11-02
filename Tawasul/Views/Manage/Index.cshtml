@@ -1,0 +1,38 @@
+﻿@model Tawasul.Models.ViewModels.ManageProfileViewModel
+@{
+    ViewData["Title"] = "إدارة الحساب";
+}
+
+<h3>@ViewData["Title"]</h3>
+
+<div classs="row">
+    <div class="col-md-6">
+        <form method="post" enctype="multipart/form-data">
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (!string.IsNullOrEmpty(Model.CurrentPhotoUrl))
+            {
+                <img src="@Model.CurrentPhotoUrl" style="width: 100px; height: 100px; border-radius: 50%;" />
+            }
+            else
+            {
+                <img src="/images/default-avatar.png" style="width: 100px; height: 100px; border-radius: 50%;" />
+            }
+
+            <div class="form-group mt-3">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" class="form-control" />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-3">
+                <label asp-for="NewPhoto"></label>
+                <input asp-for="NewPhoto" class="form-control" />
+                <span asp-validation-for="NewPhoto" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3">حفظ التغييرات</button>
+        </form>
+    </div>
+</div>

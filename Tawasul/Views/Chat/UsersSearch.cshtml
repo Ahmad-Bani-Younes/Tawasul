@@ -1,0 +1,57 @@
+﻿@{
+    ViewData["Title"] = "بحث عن مستخدم";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5" style="max-width: 600px;">
+    <h4 class="mb-4 text-center">🔍 البحث عن مستخدم</h4>
+
+    <div class="input-group mb-3">
+        <input type="text" id="searchQuery" class="form-control" placeholder="اكتب الإيميل أو رقم الهاتف..." />
+        <button id="btnSearch" class="btn btn-primary">بحث</button>
+    </div>
+
+    <div id="resultBox" class="alert text-center d-none"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    $("#btnSearch").click(function () {
+        const query = $("#searchQuery").val().trim();
+        if (!query) return alert("الرجاء إدخال البريد أو الرقم");
+
+        $("#resultBox")
+            .removeClass("alert-success alert-danger d-none")
+            .addClass("alert-info")
+            .text("جارٍ البحث...");
+
+        $.get("/Chat/SearchUser", { query }, function (res) {
+            $("#resultBox").removeClass("alert-info");
+
+            if (!res.found) {
+                $("#resultBox")
+                    .addClass("alert-danger")
+                    .text("❌ المستخدم غير موجود");
+                return;
+            }
+
+            $("#resultBox")
+                .addClass("alert-success")
+                .html(`
+                    ✅ تم العثور على المستخدم:
+                    <strong>${res.user.Display}</strong><br/>
+                    <button class="btn btn-sm btn-primary mt-2" onclick="startChat('${res.user.Id}')">بدء محادثة</button>
+                `);
+        });
+    });
+
+    function startChat(userId) {
+        $.post("/Chat/StartPrivateChat", { targetUserId: userId }, function (res) {
+            if (res.success) {
+                window.location.href = "/Chat/Index?id=" + res.conversationId;
+            } else {
+                alert("حدث خطأ أثناء إنشاء المحادثة");
+            }
+        });
+    }
+</script>

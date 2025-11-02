@@ -1,0 +1,68 @@
+﻿@model List<Tawasul.Models.ViewModels.GroupMemberViewModel>
+@{
+    ViewData["Title"] = "أعضاء المجموعة";
+    Layout = "_Layout";
+    var groupId = ViewBag.GroupId;
+}
+
+<div class="container mt-4">
+    <h3>الأعضاء في <strong>@ViewBag.GroupTitle</strong></h3>
+
+    <div class="input-group my-3">
+        <input type="text" id="userSearchInput" class="form-control" placeholder="ابحث عن مستخدم لإضافته..." />
+        <button id="searchBtn" class="btn btn-outline-primary">بحث</button>
+    </div>
+
+    <div id="userSearchResults" class="mb-3"></div>
+
+    <ul class="list-group shadow-sm">
+        @foreach (var m in Model)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    @m.DisplayName
+                    @if (m.IsOwner)
+                    {
+                        <span class="badge bg-primary ms-2">المالك</span>
+                    }
+                </span>
+                <small class="text-muted">@m.JoinedAt</small>
+            </li>
+        }
+    </ul>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    $("#userSearchInput").on("keyup", function () {
+        const q = $(this).val();
+        if (q.length < 3) return;
+        $.get("/GroupMembers/Search", { query: q, groupId: "@groupId" }, function (users) {
+            const box = $("#userSearchResults");
+            box.empty();
+            if (users.length === 0) {
+                box.html("<div class='text-muted'>لا يوجد نتائج.</div>");
+                return;
+            }
+            users.forEach(u => {
+                box.append(`
+                    <div class="d-flex justify-content-between align-items-center border p-2 mb-1 rounded">
+                        <div>
+                            <strong>${u.displayName}</strong><br>
+                            <small>${u.email}</small>
+                        </div>
+                        <button class="btn btn-sm btn-success add-btn" data-id="${u.id}">➕ إضافة</button>
+                    </div>
+                `);
+            });
+        });
+    });
+
+    $(document).on("click", ".add-btn", function () {
+        const userId = $(this).data("id");
+        $.post("/GroupMembers/AddMember", { groupId: "@groupId", userId }, function () {
+            alert("✅ تمت الإضافة بنجاح!");
+            location.reload();
+        }).fail(() => alert("حدث خطأ أثناء الإضافة."));
+    });
+</script>
