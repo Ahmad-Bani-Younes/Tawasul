@@ -105,7 +105,6 @@ namespace Tawasul.Controllers
         }
 
 
-        // ✅ تحميل رسائل محادثة معينة
         [HttpGet("Chat/LoadMessages/{id}")]
         public async Task<IActionResult> LoadMessages(long id)
         {
@@ -121,19 +120,34 @@ namespace Tawasul.Controllers
                     updates.SetProperty(ums => ums.HasSeen, true)
                            .SetProperty(ums => ums.SeenAtUtc, DateTime.UtcNow));
 
-            // ✅ جلب الرسائل
+            // ✅ جلب الرسائل + المرفقات
             var messages = await _db.Messages
                 .Include(m => m.Sender)
+                .Include(m => m.Attachments) // ⬅️ أضفنا هذا السطر
                 .Where(m => m.ConversationId == id)
                 .OrderBy(m => m.CreatedAtUtc)
                 .Select(m => new
                 {
                     m.Id,
                     m.Text,
-                    Sender = m.Sender.DisplayName ?? m.Sender.UserName,
                     m.CreatedAtUtc,
                     IsMine = (m.SenderId == userId),
-                    PhotoUrl = m.Sender.PhotoUrl // ⬅️ ⬅️ (أضف هذا السطر)
+                    Sender = m.Sender.DisplayName ?? m.Sender.UserName,
+                    PhotoUrl = m.Sender.PhotoUrl,
+
+                    // ⬅️ نرجع المرفق إن وجد
+                    FileUrl = m.Attachments.FirstOrDefault() != null
+                        ? m.Attachments.First().FilePath
+                        : null,
+                    FileType = m.Attachments.FirstOrDefault() != null
+                        ? m.Attachments.First().ContentType
+                        : null,
+                    FileName = m.Attachments.FirstOrDefault() != null
+                        ? m.Attachments.First().OriginalName
+                        : null,
+                    FileSize = m.Attachments.FirstOrDefault() != null
+                        ? m.Attachments.First().SizeBytes
+                        : 0
                 })
                 .ToListAsync();
 
@@ -141,67 +155,121 @@ namespace Tawasul.Controllers
         }
 
 
-        // ✅ إرسال رسالة جديدة (مع البث عبر SignalR)
+
         [HttpPost]
-        public async Task<IActionResult> SendMessage(long conversationId, string text)
+        public async Task<IActionResult> SendMessage(long conversationId, string? text, IFormFile? file)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(text) || userId == null)
-                return BadRequest();
+            if (userId == null)
+                return Unauthorized();
 
-            // جلب اسم المرسل
+            if (string.IsNullOrWhiteSpace(text) && file == null)
+                return BadRequest("لا يوجد محتوى للإرسال.");
+
             var sender = await _userManager.FindByIdAsync(userId);
-            var senderName = sender?.DisplayName ?? sender?.UserName ?? "مستخدم";
-            var senderPhoto = sender?.PhotoUrl; // ⬅️ ⬅️ (أضف هذا السطر)
+            if (sender == null)
+                return Unauthorized();
 
-            // إنشاء الرسالة
+            // 🟦 إنشاء الرسالة
             var message = new Message
             {
                 ConversationId = conversationId,
                 SenderId = userId,
-                Text = text.Trim(),
+                Text = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
                 CreatedAtUtc = DateTime.UtcNow
             };
 
             _db.Messages.Add(message);
             await _db.SaveChangesAsync();
 
-            // 🔽🔽 (هذا هو التعديل) 🔽🔽
+            // 🟦 لو في ملف مرفق
+            MessageAttachment? attachment = null;
+            if (file != null && file.Length > 0)
+            {
+                // ✅ 1. التحقق من الحجم (مثلاً 25 ميجا)
+                const long maxFileSize = 25 * 1024 * 1024;
+                if (file.Length > maxFileSize)
+                    return BadRequest("حجم الملف أكبر من المسموح به (25MB).");
 
-            // 1. حضّر الموديل الذي سيُرسل "للآخرين" (عبر SignalR)
+                // ✅ 2. التحقق من الأنواع المسموح بها
+                // ✅ 2. التحقق من الأنواع المسموح بها (مرن أكثر)
+                // ✅ 2. التحقق من الأنواع المسموح بها (مرن)
+                var allowedPrefixes = new[]
+                {
+            "image/", "video/", "audio/",
+            "application/pdf",
+            "application/zip",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument"
+        };
+
+                bool isAllowed = allowedPrefixes.Any(p => file.ContentType.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+                if (!isAllowed)
+                    return BadRequest($"نوع الملف غير مدعوم: {file.ContentType}");
+
+                // ✅ 3. مسار الحفظ
+                var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "chat");
+                Directory.CreateDirectory(uploadsPath);
+
+                // ✅ 4. حفظ الملف باسم فريد
+                var uniqueName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                var filePath = Path.Combine(uploadsPath, uniqueName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // ✅ 5. حفظ بيانات المرفق في قاعدة البيانات
+                attachment = new MessageAttachment
+                {
+                    MessageId = message.Id,
+                    FilePath = $"/uploads/chat/{uniqueName}",
+                    ContentType = file.ContentType,
+                    SizeBytes = file.Length,
+                    OriginalName = file.FileName
+                };
+
+                _db.Add(attachment);
+                await _db.SaveChangesAsync();
+            }
+
+            // 🟩 تجهيز الرسالة النهائية (لترسل عبر SignalR والـ JSON)
+            var msgResponse = new
+            {
+                message.Id,
+                message.Text,
+                message.CreatedAtUtc,
+                message.ConversationId,
+                message.SenderId,
+                IsMine = true,
+                FileUrl = attachment?.FilePath,
+                FileType = attachment?.ContentType,
+                FileName = attachment?.OriginalName,
+                FileSize = attachment?.SizeBytes
+            };
+
+            // 🟨 إرسالها للمستخدمين في نفس الغرفة
             var broadcastModel = new
             {
                 message.Id,
                 message.Text,
-                Sender = senderName,
                 message.CreatedAtUtc,
-                IsMine = false, // ⬅️ أهم تعديل: الطرف الآخر يراها كـ "other"
-                ConversationId = message.ConversationId,
-                PhotoUrl = senderPhoto, // ⬅️ ⬅️ (أضف هذا السطر)
-                SenderId = message.SenderId // ⬅️ إضافة مهمة للفلترة في الجافاسكربت
+                message.ConversationId,
+                message.SenderId,
+                IsMine = false,
+                FileUrl = attachment?.FilePath,
+                FileType = attachment?.ContentType,
+                FileName = attachment?.OriginalName,
+                FileSize = attachment?.SizeBytes
             };
 
-            // 2. حضّر الموديل الذي سيُرجع "لك" (عبر JSON)
-            var jsonResult = new
-            {
-                message.Id,
-                message.Text,
-                Sender = senderName,
-                message.CreatedAtUtc,
-                IsMine = true, // ⬅️ أنت تراها كـ "me"
-                ConversationId = message.ConversationId,
-                PhotoUrl = senderPhoto, // ⬅️ ⬅️ (أضف هذا السطر)
-                SenderId = message.SenderId
-            };
+            await _hubContext.Clients.Group(conversationId.ToString())
+                .SendAsync("ReceiveMessage", broadcastModel);
 
-            // 3. بثّ الموديل (الخاص بالآخرين) إلى الغرفة
-            await _hubContext.Clients
-                .Group(conversationId.ToString())
-                .SendAsync("ReceiveMessage", broadcastModel); // ⬅️ إرسال broadcastModel
-
-            // 4. إعادة الرد (الخاص بك) للمرسل
-            return Json(jsonResult); // ⬅️ إرجاع jsonResult
+            return Json(msgResponse);
         }
+
 
 
         // ... (داخل ChatController)
@@ -285,5 +353,69 @@ namespace Tawasul.Controllers
             // 5. أعد الـ ID الجديد
             return Json(new { conversationId = conversation.Id });
         }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> EditMessage(long messageId, string newText)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
+
+            var msg = await _db.Messages.FirstOrDefaultAsync(m => m.Id == messageId && !m.IsDeleted);
+            if (msg == null) return NotFound("الرسالة غير موجودة.");
+            if (msg.SenderId != userId) return Forbid();
+
+            msg.Text = newText.Trim();
+            msg.IsEdited = true;
+            await _db.SaveChangesAsync();
+
+            // بث التحديث إلى الجميع في نفس المحادثة
+            await _hubContext.Clients.Group(msg.ConversationId.ToString())
+                .SendAsync("MessageEdited", new
+                {
+                    msg.Id,
+                    msg.ConversationId,
+                    msg.Text,
+                    msg.IsEdited
+                });
+
+            return Ok();
+        }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteMessage(long messageId, bool deleteForAll = false)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
+
+            var msg = await _db.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
+            if (msg == null) return NotFound();
+
+            // 🔹 إذا حذف للجميع
+            if (deleteForAll)
+            {
+                if (msg.SenderId != userId) return Forbid();
+
+                msg.IsDeleted = true;
+                msg.Text = "🚫 تم حذف هذه الرسالة";
+                await _db.SaveChangesAsync();
+
+                await _hubContext.Clients.Group(msg.ConversationId.ToString())
+                    .SendAsync("MessageDeleted", new { msg.Id, msg.ConversationId, deleteForAll = true });
+            }
+            else
+            {
+                // 🔹 حذف من جهة المستخدم فقط (client-side)
+                await _hubContext.Clients.User(userId)
+                    .SendAsync("MessageDeleted", new { msg.Id, msg.ConversationId, deleteForAll = false });
+            }
+
+            return Ok();
+        }
+
+
     }
 }

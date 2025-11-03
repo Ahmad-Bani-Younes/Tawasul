@@ -19,19 +19,29 @@ namespace Tawasul.Hubs
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId != null)
             {
+                // انضمام المستخدم لكل المحادثات الخاصة فيه
+                var conversationIds = await _db.ConversationMembers
+                    .Where(m => m.UserId == userId)
+                    .Select(m => m.ConversationId.ToString())
+                    .ToListAsync();
+
+                foreach (var convId in conversationIds)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, convId);
+                }
+
                 var user = await _db.Users.FindAsync(userId);
                 if (user != null)
                 {
                     user.IsOnline = true;
                     await _db.SaveChangesAsync();
-
-                    // بثّ الحالة الجديدة للجميع
                     await Clients.All.SendAsync("UserStatusChanged", userId, true);
                 }
             }
 
             await base.OnConnectedAsync();
         }
+
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tawasul.Data;
 
@@ -11,9 +12,11 @@ using Tawasul.Data;
 namespace Tawasul.Migrations
 {
     [DbContext(typeof(TawasulDbContext))]
-    partial class TawasulDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251103160631_AddEditDeleteToMessages")]
+    partial class AddEditDeleteToMessages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

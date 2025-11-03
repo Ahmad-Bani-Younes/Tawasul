@@ -12,6 +12,9 @@
         public string? Text { get; set; }
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+        public bool IsEdited { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
+
         public ICollection<MessageAttachment> Attachments { get; set; } = new List<MessageAttachment>();
         public ICollection<UserMessageStatus> Statuses { get; set; } = new List<UserMessageStatus>();
     }
