@@ -118,6 +118,7 @@
 
         <!-- 🔹 منطقة الرسائل -->
         <div class="chat-messages">
+           
             <div id="chatHeader" style="display:none;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="position-relative">
@@ -150,8 +151,18 @@
 
 
             <div class="chat-input" id="chatInputArea">
+                <!-- 🔽🔽 (انقل الحاوية إلى هنا) 🔽🔽 -->
+                <div class="emoji-picker-container" id="emojiPickerContainer">
+                    <emoji-picker></emoji-picker>
+                </div>
+                <!-- 🔼🔼 (انتهى النقل) 🔼🔼 -->
                 <input type="file" id="fileInput" class="d-none" />
                 <button type="button" id="attachBtn" class="btn btn-outline-secondary">📎</button>
+                <!-- 🔽🔽 (أضف هذا الزر هنا) 🔽🔽 -->
+                <button type="button" id="emojiBtn" class="btn btn-outline-secondary">
+                    <i class="bi bi-emoji-smile"></i>
+                </button>
+                <!-- 🔼🔼 (انتهى التعديل) 🔼🔼 -->
                 <input id="messageInput" type="text" placeholder="اكتب رسالتك..." disabled />
                 <div id="filePreviewBox" class="w-100 p-2 bg-light border-top text-center d-none">
                     <div id="filePreviewContent"></div>
@@ -269,7 +280,10 @@
 </div>
 
 
-
+<!-- 🔽🔽 (أضف هذا السطر هنا) 🔽🔽 -->
+<!-- (مكتبة الإيموجي - يجب أن تكون "module") -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+<!-- 🔼🔼 (انتهى التعديل) 🔼🔼 -->
 
 <!-- 🧩 سكربت -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -1266,5 +1280,40 @@
             connection.invoke("JoinConversation", id.toString());
         }
     });
+
+
+
+
+    // 🔽🔽 (أضف هذا الكود الجديد هنا) 🔽🔽
+    // --- (الكود الجديد: إضافة الإيموجي) ---
+
+    // (1) زر فتح "البوب أب"
+    $("#emojiBtn").on("click", function (e) {
+        e.stopPropagation();
+        $("#emojiPickerContainer").toggleClass("active");
+    });
+
+    // (2) إغلاق "البوب أب" عند الضغط خارجه
+    $(document).on("click", function () {
+        $("#emojiPickerContainer").removeClass("active");
+    });
+
+    // (3) جلب الإيموجي عند الضغط عليه
+    // (ملاحظة: هذا الكود "Vanilla JS" لأنه Web Component)
+    document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
+        document.querySelector('emoji-picker')
+        const emoji = event.detail.unicode;
+        const input = $("#messageInput");
+
+        // (إضافة الإيموجي للنص)
+        input.val(input.val() + emoji);
+
+        // (إعادة التركيز على الصندوق)
+        input.focus();
+
+        // (تفعيل زر الإرسال)
+        $("#sendBtn").prop("disabled", false);
+    });
+    // --- 🔼 (انتهى الكود الجديد) 🔼 ---
 </script>
 

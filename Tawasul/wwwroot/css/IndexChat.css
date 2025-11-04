@@ -1249,3 +1249,43 @@ body {
 }
 
 /* --- 🔼 (انتهى التعديل) 🔼 --- */
+
+/* --- 🔽 (أضف هذا الكود الجديد) 🔽 --- */
+
+/* (جعل الأزرار بنفس الحجم) */
+.chat-input button {
+    flex-shrink: 0;
+}
+
+/* (حاوية الإيموجي) */
+/* --- 🔽 (هذا هو الكود المُعدل) 🔽 --- */
+.chat-input {
+    position: relative; /* (1. اجعل شريط الإدخال هو المرجع) */
+}
+
+/* (2. تنسيق حاوية الإيموجي) */
+.emoji-picker-container {
+    position: absolute;
+    bottom: calc(100% + 10px); /* (فوق شريط الإدخال بـ 10 بكسل) */
+    /* (تحديد مكانها - قد تحتاج لتعديل 45px) */
+    right: 45px;
+    z-index: 1050;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease-out;
+}
+    /* --- 🔼 (انتهى التعديل) 🔼 --- */
+
+    .emoji-picker-container.active {
+        visibility: visible;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+emoji-picker {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    border: 1px solid #eee;
+}
+/* --- 🔼 (انتهى التعديل) 🔼 --- */
