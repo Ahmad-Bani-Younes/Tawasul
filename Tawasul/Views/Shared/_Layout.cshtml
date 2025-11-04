@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.AspNetCore.Identity.UserManager<Tawasul.Models.ApplicationUser> UserManager
+
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8" />
@@ -35,67 +37,7 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <!-- 🔹 عناصر التنقل -->
-                <div class="collapse navbar-collapse" id="navbarMain">
-                    @* <!-- 🔹 القائمة الرئيسية -->
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        @if (User.Identity?.IsAuthenticated ?? false)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Chat" asp-action="Index">
-                                    <i class="bi bi-chat-dots me-1"></i>المحادثات
-                                </a>
-                            </li>
-                        }
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Privacy">
-                                <i class="bi bi-shield-check me-1"></i>الخصوصية
-                            </a>
-                        </li>
-                    </ul> *@
-
-                    <!-- 🔹 القائمة الجانبية -->
-                    @* <ul class="navbar-nav ms-auto">
-                        @if (User.Identity?.IsAuthenticated ?? false)
-                        {
-                            <!-- 🔹 معلومات المستخدم -->
-                            <li class="nav-item d-flex align-items-center me-3">
-                                <span class="text-muted me-2">👋 مرحبًا،</span>
-                                <span class="fw-semibold text-primary">@User.Identity!.Name</span>
-                            </li>
-
-                            <!-- 🔹 رابط الحساب -->
-                            <li class="nav-item me-2">
-                                <a class="nav-link text-dark" asp-controller="Manage" asp-action="Index">
-                                    <i class="bi bi-person-circle me-1"></i>حسابي
-                                </a>
-                            </li>
-
-                            <!-- 🔹 زر تسجيل الخروج -->
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        <i class="bi bi-box-arrow-right me-1"></i>تسجيل الخروج
-                                    </button>
-                                </form>
-                            </li>
-                        }
-                        else
-                        {
-                            <!-- 🔹 أزرار الدخول للتسجيل للزوار -->
-                            <li class="nav-item me-2">
-                                <a class="btn btn-outline-primary btn-sm" asp-controller="Account" asp-action="Login">
-                                    <i class="bi bi-box-arrow-in-right me-1"></i>تسجيل الدخول
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-success btn-sm" asp-controller="Account" asp-action="Register">
-                                    <i class="bi bi-person-plus me-1"></i>إنشاء حساب
-                                </a>
-                            </li>
-                        }
-                    </ul> *@
-                </div>
+               
             </div>
         </nav>
     </header>
@@ -106,8 +48,6 @@
             @RenderBody()
         </main>
     </div>
-
-   
 
     <!-- 🔹 السكربتات -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

@@ -9,6 +9,11 @@ namespace Tawasul.Models
         public DateTimeOffset? LastSeenAt { get; set; }
         public bool IsOnline { get; set; } = false;
 
+        // إعدادات الخصوصية
+        public bool ShowOnlineStatus { get; set; } = true;
+        public bool ShowLastSeen { get; set; } = true;
+        public bool EnableNotifications { get; set; } = true;
+        public bool EnableSounds { get; set; } = true;
 
         public ICollection<ConversationMember> Conversations { get; set; } = new List<ConversationMember>();
         public ICollection<Message> Messages { get; set; } = new List<Message>();

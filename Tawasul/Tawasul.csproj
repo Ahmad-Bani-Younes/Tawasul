@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\images\avatars\" />
     <Folder Include="wwwroot\uploads\chatfiles\" />
   </ItemGroup>
 

@@ -448,6 +448,30 @@ namespace Tawasul.Controllers
             return Ok();
         }
 
+        // ✅ جلب حالة المستخدم (Online/Offline + آخر ظهور)
+        [HttpGet]
+        public async Task<IActionResult> GetUserStatus(long conversationId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (currentUserId == null) return Unauthorized();
 
+            // جلب المستخدم الآخر في المحادثة
+            var otherUserId = await _db.ConversationMembers
+                .Where(cm => cm.ConversationId == conversationId && cm.UserId != currentUserId)
+                .Select(cm => cm.UserId)
+                .FirstOrDefaultAsync();
+
+            if (otherUserId == null) 
+                return Json(new { isOnline = false, lastSeenAt = (DateTime?)null });
+
+            var user = await _db.Users.FindAsync(otherUserId);
+            if (user == null) 
+                return Json(new { isOnline = false, lastSeenAt = (DateTime?)null });
+
+            return Json(new { 
+                isOnline = user.IsOnline,
+                lastSeenAt = user.LastSeenAt.HasValue ? (DateTime?)user.LastSeenAt.Value.UtcDateTime : null
+            });
+        }
     }
 }

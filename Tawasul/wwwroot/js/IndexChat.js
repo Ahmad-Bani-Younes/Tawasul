@@ -257,44 +257,81 @@ function setupImageEditing() {
         if (!img) return;
 
         const modalHtml = `
-            <div class="modal fade" id="editImageModal" tabindex="-1">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                    <div class="modal-content" style="background: #fff; color: #000; border: none; border-radius: 14px;">
-                        <div class="modal-header border-0">
-                            <h5 class="modal-title fw-bold">✏️ تعديل الصورة</h5>
+            <div class="modal fade show" id="editImageModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.85);">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content" style="background: #1a1a1a; border: none; border-radius: 12px;">
+                        <div class="modal-header" style="border-bottom: 1px solid #333; padding: 1rem 1.5rem;">
+                            <h5 class="modal-title text-white fw-bold">
+                                <i class="bi bi-crop me-2"></i>اقتصاص الصورة
+                            </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body text-center" style="max-height: 80vh; overflow: hidden;">
-                            <img id="cropImage" src="${img.src}"
-                                 style="max-width: 100%; max-height: 75vh; border-radius: 12px;" />
+                        <div class="modal-body p-3" style="height: 500px; display: flex; align-items: center; justify-content: center; background: #000;">
+                            <img id="cropImage" src="${img.src}" style="max-width: 100%; max-height: 100%; display: block;" />
                         </div>
-                        <div class="modal-footer border-0 justify-content-between">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-                            <button type="button" id="btnCropApply" class="btn btn-success px-4 fw-bold">✔️ حفظ</button>
+                        <div class="modal-footer" style="border-top: 1px solid #333; padding: 1rem 1.5rem;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i>إلغاء
+                            </button>
+                            <button type="button" id="btnCropApply" class="btn btn-success px-4">
+                                <i class="bi bi-check2-circle me-1"></i>حفظ
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>`;
-
+        
         $("body").append(modalHtml);
-        const modal = new bootstrap.Modal(document.getElementById("editImageModal"));
-        modal.show();
-
+        const modal = document.getElementById("editImageModal");
+        
         const cropImg = document.getElementById("cropImage");
-        cropper = new Cropper(cropImg, { aspectRatio: NaN, viewMode: 1 });
-
-        $("#btnCropApply").on("click", function () {
-            const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024 });
-            $("#previewImage").attr("src", canvas.toDataURL("image/png"));
-            modal.hide();
-            $("#editImageModal").remove();
-            cropper.destroy();
-            cropper = null;
+        cropper = new Cropper(cropImg, { 
+            aspectRatio: NaN,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.8,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+            background: false,
+            modal: false,
+            responsive: true,
+            checkCrossOrigin: false
         });
 
-        $("#editImageModal").on("hidden.bs.modal", () => {
-            if (cropper) cropper.destroy();
-            $("#editImageModal").remove();
+        $("#btnCropApply").on("click", function () {
+            const canvas = cropper.getCroppedCanvas({ 
+                maxWidth: 1200,
+                maxHeight: 1200,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                $("#previewImage").attr("src", url);
+                
+                const file = new File([blob], "cropped-image.png", { type: "image/png" });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                $("#fileInput")[0].files = dataTransfer.files;
+                
+                $(modal).remove();
+                cropper.destroy();
+                cropper = null;
+            }, 'image/png', 1.0);
+        });
+
+        $(modal).find(".btn-close, .btn-secondary").on("click", function() {
+            $(modal).remove();
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
         });
     });
 }

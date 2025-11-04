@@ -1,15 +1,18 @@
 ﻿@model List<Tawasul.Models.ViewModels.ConversationListViewModel>
+@inject Microsoft.AspNetCore.Identity.UserManager<Tawasul.Models.ApplicationUser> UserManager
 @{
     ViewData["Title"] = "المحادثات";
     Layout = "_Layout";
 
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var currentUser = await UserManager.GetUserAsync(User);
+    var displayName = currentUser?.DisplayName ?? currentUser?.Email ?? "مستخدم";
 }
 <link rel="stylesheet" href="~/css/IndexChat.css" asp-append-version="true" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+<!-- Fabric.js للرسم والكتابة على الصور -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
 
 <div class="container mt-4">
@@ -95,12 +98,9 @@
                 </div>
 
                 <!-- (2) الأزرار (الأيقونات) -->
-                <!-- (2) الأزرار (الأيقونات) -->
                 <div class="profile-triggers">
-
-                    <!-- 🔽🔽 (هذا هو التعديل) 🔽🔽 -->
                     <!-- (1) إضافة اسم المستخدم) -->
-                    <span class="user-name-display">@User.Identity.Name</span>
+                    <span class="user-name-display">@displayName</span>
 
                     <!-- (2) حاوية الأيقونات) -->
                     <div class="profile-icons">
@@ -111,8 +111,6 @@
                             <i class="bi bi-gear"></i>
                         </button>
                     </div>
-                    <!-- 🔼🔼 (انتهى التعديل) 🔼🔼 -->
-
                 </div>
             </div>
             <!-- (انتهى الكود الجديد) 🔼 -->
@@ -121,10 +119,14 @@
         <!-- 🔹 منطقة الرسائل -->
         <div class="chat-messages">
             <div id="chatHeader" style="display:none;">
-                <div class="d-flex align-items-center gap-2">
-                    <img id="chatHeaderPhoto" src="/images/default-avatar.png" width="42" height="42" class="rounded-circle" />
-                    <div>
-                        <div id="chatHeaderName" class="fw-bold"></div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="position-relative">
+                        <img id="chatHeaderPhoto" src="/images/default-avatar.png" width="50" height="50" class="rounded-circle" style="border: 2px solid #7b68ee;" />
+                        <span id="onlineStatusBadge" class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle" style="width: 14px; height: 14px; display: none;"></span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div id="chatHeaderName" class="fw-bold fs-5" style="margin-bottom: 2px;"></div>
+                        <div id="chatHeaderStatus" class="text-muted small"></div>
                     </div>
                 </div>
                 <button id="btnGroupInfo" class="info-btn d-none" title="تفاصيل المجموعة">ℹ️</button>
@@ -187,17 +189,24 @@
 
 <!-- 🖼️ نافذة عرض الصورة بالحجم الكامل -->
 <div class="modal fade" id="imagePreviewModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content bg-dark border-0 text-center position-relative">
-            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                    data-bs-dismiss="modal" aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <img id="previewImage" src="" class="img-fluid rounded"
-                     style="max-height:90vh; object-fit:contain;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-0 p-3" style="background: rgba(0,0,0,0.5);">
+                <button type="button" class="btn-close btn-close-white ms-auto" 
+                        data-bs-dismiss="modal" 
+                        aria-label="Close"></button>
             </div>
-            <div class="modal-footer border-0 justify-content-center">
+            <div class="modal-body p-0" style="max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000;">
+                <img id="previewImage" src="" 
+                     class="img-fluid" 
+                     style="max-height: 65vh; max-width: 100%; object-fit: contain;">
+            </div>
+            <div class="modal-footer border-0 justify-content-center p-3" style="background: rgba(0,0,0,0.5);">
                 <a id="downloadImageBtn" href="#" download
-                   class="btn btn-light px-4 fw-bold">⬇️ تحميل الصورة</a>
+                   class="btn btn-light px-4 py-2 fw-bold rounded-pill">
+                    <i class="bi bi-download me-2"></i>
+                    تحميل الصورة
+                </a>
             </div>
         </div>
     </div>
@@ -205,18 +214,24 @@
 
 <!-- 🎥 نافذة عرض الفيديو بالحجم الكامل -->
 <div class="modal fade" id="videoPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content bg-dark border-0 text-center">
-            <div class="modal-header border-0">
-                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-0 p-3" style="background: rgba(0,0,0,0.5);">
+                <button type="button" class="btn-close btn-close-white ms-auto" 
+                        data-bs-dismiss="modal" 
+                        aria-label="إغلاق"></button>
             </div>
-            <div class="modal-body p-0">
-                <video id="previewVideo" controls class="rounded" style="max-height:80vh; max-width:100%; object-fit:contain;">
+            <div class="modal-body p-0" style="max-height: 70vh; display: flex; align-items: center; justify-content: center; background: #000;">
+                <video id="previewVideo" controls class="w-100" style="max-height: 65vh; object-fit: contain;">
                     متصفحك لا يدعم تشغيل الفيديو.
                 </video>
             </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <a id="downloadVideoBtn" href="#" download class="btn btn-light px-4 fw-bold">⬇️ تحميل الفيديو</a>
+            <div class="modal-footer border-0 justify-content-center p-3" style="background: rgba(0,0,0,0.5);">
+                <a id="downloadVideoBtn" href="#" download 
+                   class="btn btn-light px-4 py-2 fw-bold rounded-pill">
+                    <i class="bi bi-download me-2"></i>
+                    تحميل الفيديو
+                </a>
             </div>
         </div>
     </div>
@@ -225,17 +240,29 @@
 
 <!-- 📄 نافذة عرض الملفات (PDF / DOCX / XLSX) -->
 <div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content bg-dark border-0">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-white fw-bold">📄 معاينة الملف</h5>
-                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-0 p-3" style="background: rgba(0,0,0,0.8);">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    معاينة الملف
+                </h5>
+                <button type="button" class="btn-close btn-close-white ms-auto" 
+                        data-bs-dismiss="modal" 
+                        aria-label="إغلاق"></button>
             </div>
-            <div class="modal-body p-0" style="height:80vh;">
-                <iframe id="previewFileFrame" src="" width="100%" height="100%" style="border:none; background:#1f2937;"></iframe>
+            <div class="modal-body p-0" style="height: 65vh;">
+                <iframe id="previewFileFrame" src="" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:none; background:#1f2937;"></iframe>
             </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <a id="downloadFileBtn" href="#" download class="btn btn-light px-4 fw-bold">⬇️ تحميل الملف</a>
+            <div class="modal-footer border-0 justify-content-center p-3" style="background: rgba(0,0,0,0.8);">
+                <a id="downloadFileBtn" href="#" download 
+                   class="btn btn-light px-4 py-2 fw-bold rounded-pill">
+                    <i class="bi bi-download me-2"></i>
+                    تحميل الملف
+                </a>
             </div>
         </div>
     </div>
@@ -248,49 +275,45 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
 <script>
+    // المتغيرات العامة
+    let currentConvId = null;
     let currentType = null;
-     const currentUserId = "@userId";
+    let fabricCanvas = null;
+    let currentDrawingColor = '#ff0000';
+    let currentDrawingWidth = 3;
+    const currentUserId = "@userId";
 
-
-
-        // ✅ إذا تم تمرير open ID في الرابط، نحاول فتحها تلقائياً
-       // عند تحميل الصفحة أول مرة:
+    // عند تحميل الصفحة
     $(document).ready(() => {
         const params = new URLSearchParams(window.location.search);
         const openId = params.get("open");
 
-        // إذا ما في محادثة محددة بالرابط → إخفاء مربع الإدخال وإظهار شاشة النظام
         if (!openId) {
             $("#chatInputArea").hide();
             $("#emptyState").show();
         } else {
             $(`.conv-item[data-id='${openId}']`).trigger("click");
         }
+
+        // قائمة الحساب
+        $("#profileMenuBtn").on("click", function(e) {
+            e.stopPropagation();
+            $("#profileMenu").toggleClass("active");
+        });
+
+        $(document).on("click", function() {
+            $("#profileMenu").removeClass("active");
+        });
+
+        $("#profileMenu").on("click", function(e) {
+            e.stopPropagation();
+        });
     });
 
-
-        // ... (بعد $(document).ready(...) )
-
-    // ✅ (JS جديد) فتح وإغلاق قائمة الحساب
-    $("#profileMenuBtn").on("click", function(e) {
-        e.stopPropagation(); // (لمنع الإغلاق الفوري)
-        $("#profileMenu").toggleClass("active");
-    });
-
-    // (إغلاق القائمة عند الضغط في أي مكان آخر)
-    $(document).on("click", function() {
-        $("#profileMenu").removeClass("active");
-    });
-
-    // (منع إغلاق القائمة عند الضغط عليها)
-    $("#profileMenu").on("click", function(e) {
-        e.stopPropagation();
-    });
-
-    // عند اختيار محادثة → نخفي شعار النظام ونظهر مربع الإدخال
+    // عند الضغط على محادثة
     $(document).on("click", ".conv-item", function () {
         $(".conv-item").removeClass("active");
         $(this).addClass("active");
@@ -312,8 +335,36 @@
 
         if (type === "group") {
             $("#btnGroupInfo").removeClass("d-none").data("group-id", id);
+            $("#onlineStatusBadge").hide();
+            $("#chatHeaderStatus").text("");
         } else {
             $("#btnGroupInfo").addClass("d-none");
+            
+            $.get(`/Chat/GetUserStatus?conversationId=${id}`, function(data) {
+                if (data.isOnline) {
+                    $("#onlineStatusBadge").show().removeClass("bg-secondary").addClass("bg-success");
+                    $("#chatHeaderStatus").text("متصل الآن").css("color", "#10b981");
+                } else if (data.lastSeenAt) {
+                    $("#onlineStatusBadge").show().removeClass("bg-success").addClass("bg-secondary");
+                    const lastSeen = new Date(data.lastSeenAt);
+                    const now = new Date();
+                    const diff = now - lastSeen;
+                    const minutes = Math.floor(diff / 60000);
+                    const hours = Math.floor(minutes / 60);
+                    const days = Math.floor(hours / 24);
+                    
+                    let statusText = "";
+                    if (minutes < 1) statusText = "آخر ظهور منذ لحظات";
+                    else if (minutes < 60) statusText = `آخر ظهور منذ ${minutes} دقيقة`;
+                    else if (hours < 24) statusText = `آخر ظهور منذ ${hours} ساعة`;
+                    else statusText = `آخر ظهور منذ ${days} يوم`;
+                    
+                    $("#chatHeaderStatus").text(statusText).css("color", "#6b7280");
+                } else {
+                    $("#onlineStatusBadge").hide();
+                    $("#chatHeaderStatus").text("");
+                }
+            });
         }
 
         $("#chatBody").html('<div class="text-center text-muted mt-5">جارٍ تحميل الرسائل...</div>');
@@ -323,94 +374,38 @@
             $("#chatBody").empty();
             data.forEach(m => appendMessage(m));
         });
+
+        $(this).find(".badge-unread").remove();
     });
 
-
-
-    // ✅ عند الضغط على محادثة أو مجموعة
-    $(document).on("click", ".conv-item", function () {
-        $(".conv-item").removeClass("active");
-        $(this).addClass("active");
-
-        const id = $(this).data("id");
-        const type = $(this).data("type");
-        currentConvId = id;
-            // 🟢 إزالة البادج عند فتح المحادثة
-    $(this).find(".badge-unread").remove();
-
-        currentType = type;
-
-        const name = $(this).find(".fw-bold:first").text().trim();
-        const photo = $(this).find("img").attr("src") || "/images/avatars/default-avatar.png";
-
-        $("#chatHeaderPhoto").attr("src", photo);
-        $("#chatHeaderName").text(name);
-        $("#chatHeader").show();
-
-        if (type === "group") {
-            $("#btnGroupInfo").removeClass("d-none").data("group-id", id);
-        } else {
-            $("#btnGroupInfo").addClass("d-none");
-        }
-
-        $("#chatBody").html('<div class="text-center text-muted mt-5">جارٍ تحميل الرسائل...</div>');
-        $("#messageInput, #sendBtn").prop("disabled", false);
-
-         
-
-        $.get(`/Chat/LoadMessages/${id}`, function (data) {
-            $("#chatBody").empty();
-            data.forEach(m => appendMessage(m));
-        });
-    });
-
-
-
-    // ✅ زر معلومات المجموعة
-    $("#btnGroupInfo").on("click", function () {
-        const id = $(this).data("group-id");
-        if (id) window.location.href = `/Groups/Details/${id}`;
-    });
-
-    // ✅ إرسال الرسائل
-       $("#sendBtn").click(sendMessage);
-       // ✅ التعديل: تفعيل الانتر للإرسال سواء للملفات أو النص
+    // إرسال الرسائل
+    $("#sendBtn").click(sendMessage);
     $("#messageInput").keypress(function(e) {
-        if (e.which === 13) { // زر الانتر
+        if (e.which === 13) {
             const text = $("#messageInput").val().trim();
             const file = $("#fileInput")[0].files[0];
-
-            // ✅ السماح بالإرسال إذا كان هناك نص أو ملف
             if (text || file) {
                 sendMessage();
-                e.preventDefault(); // منع السلوك الافتراضي (إضافة سطر جديد)
+                e.preventDefault();
             }
         }
     });
 
-
-        $("#messageInput").on("input", function() {
+    $("#messageInput").on("input", function() {
         const text = $(this).val().trim();
         const file = $("#fileInput")[0].files[0];
-
-        // ✅ تفعيل الزر إذا كان هناك نص أو ملف
-        if (text || file) {
-            $("#sendBtn").prop("disabled", false);
-        } else {
-            $("#sendBtn").prop("disabled", true);
-        }
+        $("#sendBtn").prop("disabled", !(text || file));
     });
 
     function sendMessage() {
         const text = $("#messageInput").val().trim();
         const file = $("#fileInput")[0].files[0];
 
-        // ✅ التعديل: السماح بإرسال ملف بدون نص
         if (!text && !file) return;
 
         const formData = new FormData();
         formData.append("conversationId", currentConvId);
-        formData.append("text", text || ""); // ✅ أرسل نص فارغ إذا لم يكن هناك نص
+        formData.append("text", text || "");
 
         if (file) {
             console.log("📎 نوع الملف المرسل:", file.type);
@@ -424,20 +419,13 @@
             processData: false,
             contentType: false,
             success: (msg) => {
-                // ✅ عرض الرسالة الجديدة
                 appendMessage(msg);
-
-                // ✅ تنظيف الحقول
                 $("#messageInput").val("");
                 $("#fileInput").val("");
-
-                // ✅ إخفاء جميع أنواع المعاينة بعد الإرسال
                 $("#filePreviewArea").addClass("d-none");
                 $("#filePreviewBox").addClass("d-none");
                 $("#filePreviewContent").empty();
                 $("#btnEditImage").addClass("d-none");
-
-                // ✅ إعادة تعيين زر الإرسال
                 $("#sendBtn").prop("disabled", true);
             },
             error: (xhr) => {
@@ -447,143 +435,85 @@
         });
     }
 
-        // 📎 عند اختيار ملف من الجهاز
-    $("#fileInput").change(function () {
-        const file = this.files[0];
-        if (!file) return $("#filePreviewBox").addClass("d-none");
-
-        const size = formatFileSize(file.size);
-        $("#filePreviewBox").removeClass("d-none");
-        $("#filePreviewContent").html(`
-            <div class="d-flex align-items-center justify-content-center bg-white rounded p-2 shadow-sm">
-                <span class="me-2">📎</span>
-                <strong>${file.name}</strong>
-                <small class="text-muted ms-2">(${size})</small>
-            </div>
-        `);
-    });
-
-    // ❌ زر الإلغاء
-    $("#btnCancelFile").click(() => {
-        $("#fileInput").val("");
-        $("#filePreviewBox").addClass("d-none");
-        $("#filePreviewContent").empty();
-    });
-
-    // 📄 زر المعاينة قبل الإرسال
-    $("#btnPreviewFile").click(() => {
-        const file = $("#fileInput")[0].files[0];
-        if (!file) return;
-
-        const type = (file.type || "").toLowerCase();
-        const blobUrl = URL.createObjectURL(file);
-        const iframe = $("#previewFileFrame");
-        const downloadBtn = $("#downloadFileBtn");
-
-        downloadBtn.attr("href", blobUrl);
-        downloadBtn.attr("download", file.name);
-
-        if (type.includes("pdf")) {
-            iframe.attr("src", blobUrl);
-        } else if (type.includes("word") || type.includes("officedocument.word")) {
-            iframe.attr("src", `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(blobUrl)}`);
-        } else if (type.includes("excel") || type.includes("spreadsheetml")) {
-            iframe.attr("src", `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(blobUrl)}`);
-        } else {
-            alert("لا يمكن عرض هذا النوع من الملفات مسبقًا.");
-            return;
-        }
-
-        $("#filePreviewModal").modal("show");
-    });
-
-
-
-    // 📎 عند الضغط على زر المرفق
+    // إدارة الملفات
     $("#attachBtn").click(() => $("#fileInput").click());
-        // ✅ عند اختيار ملف → إظهار المعاينة
-   $("#fileInput").on("change", function () {
-           const file = this.files[0];
+
+    $("#fileInput").on("change", function () {
+        const file = this.files[0];
         const text = $("#messageInput").val().trim();
 
         if (file) {
             $("#sendBtn").prop("disabled", false);
-
-            // ✅ إعطاء التركيز لحقل النص لتمكين استخدام الانتر
             $("#messageInput").focus();
         } else if (!text) {
             $("#sendBtn").prop("disabled", true);
         }
 
-    const previewArea = $("#filePreviewArea");
-    const previewBox = $("#filePreviewBox");
-    const previewContent = $("#filePreviewContent");
-    
-    // إخفاء جميع المعاينات السابقة
-    previewArea.addClass("d-none");
-    previewBox.addClass("d-none");
-    previewContent.empty();
+        if (!file) return;
 
-    const type = file.type.toLowerCase();
+        const previewArea = $("#filePreviewArea");
+        const previewBox = $("#filePreviewBox");
+        const previewContent = $("#filePreviewContent");
 
-    // 📸 للصور - استخدم filePreviewArea
-    if (type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = e => {
+        previewArea.addClass("d-none");
+        previewBox.addClass("d-none");
+        previewContent.empty();
+
+        const type = file.type.toLowerCase();
+
+        if (type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewContent.html(`
+                    <img id="previewImage" src="${e.target.result}"
+                         class="img-fluid rounded shadow-sm"
+                         style="max-height:300px; object-fit:contain;" />
+                `);
+                $("#btnEditImage").removeClass("d-none");
+            };
+            reader.readAsDataURL(file);
+            previewArea.removeClass("d-none");
+        }
+        else if (type.startsWith("video/")) {
+            const url = URL.createObjectURL(file);
             previewContent.html(`
-                <img id="previewImage" src="${e.target.result}"
-                     class="img-fluid rounded shadow-sm"
-                     style="max-height:300px; object-fit:contain;" />
-            `);
-            $("#btnEditImage").removeClass("d-none");
-        };
-        reader.readAsDataURL(file);
-        previewArea.removeClass("d-none");
-    }
-    // 🎥 للفيديو - استخدم filePreviewArea
-    else if (type.startsWith("video/")) {
-        const url = URL.createObjectURL(file);
-        previewContent.html(`
-            <video controls style="max-width:100%; border-radius:10px; max-height:300px;">
-                <source src="${url}" type="${type}">
-                متصفحك لا يدعم الفيديو.
-            </video>
-        `);
-        $("#btnEditImage").addClass("d-none");
-        previewArea.removeClass("d-none");
-    }
-    // 🔊 للصوت - استخدم filePreviewArea
-    else if (type.startsWith("audio/")) {
-        const url = URL.createObjectURL(file);
-        previewContent.html(`
-            <div class="d-flex flex-column align-items-center">
-                <audio controls style="width:100%; max-width:300px;">
+                <video controls style="max-width:100%; border-radius:10px; max-height:300px;">
                     <source src="${url}" type="${type}">
-                    متصفحك لا يدعم الصوت.
-                </audio>
-                <div class="mt-2 text-muted small">${file.name}</div>
-            </div>
-        `);
-        $("#btnEditImage").addClass("d-none");
-        previewArea.removeClass("d-none");
-    }
-    // 📄 أي ملفات أخرى - استخدم filePreviewBox
-    else {
-        const size = formatFileSize(file.size);
-        previewContent.html(`
-            <div class="d-flex align-items-center justify-content-center bg-white rounded p-2 shadow-sm">
-                <span class="me-2">📎</span>
-                <strong>${file.name}</strong>
-                <small class="text-muted ms-2">(${size})</small>
-            </div>
-        `);
-        $("#btnEditImage").addClass("d-none");
-        previewBox.removeClass("d-none");
-    }
-});
+                    متصفحك لا يدعم الفيديو.
+                </video>
+            `);
+            $("#btnEditImage").addClass("d-none");
+            previewArea.removeClass("d-none");
+        }
+        else if (type.startsWith("audio/")) {
+            const url = URL.createObjectURL(file);
+            previewContent.html(`
+                <div class="d-flex flex-column align-items-center">
+                    <audio controls style="width:100%; max-width:300px;">
+                        <source src="${url}" type="${type}">
+                        متصفحك لا يدعم الصوت.
+                    </audio>
+                    <div class="mt-2 text-muted small">${file.name}</div>
+                </div>
+            `);
+            $("#btnEditImage").addClass("d-none");
+            previewArea.removeClass("d-none");
+        }
+        else {
+            const size = formatFileSize(file.size);
+            previewContent.html(`
+                <div class="d-flex align-items-center justify-content-center bg-white rounded p-2 shadow-sm">
+                    <span class="me-2">📎</span>
+                    <strong>${file.name}</strong>
+                    <small class="text-muted ms-2">(${size})</small>
+                </div>
+            `);
+            $("#btnEditImage").addClass("d-none");
+            previewBox.removeClass("d-none");
+        }
+    });
 
-    // ❌ إلغاء المعاينة
-       $("#btnRemovePreview").on("click", function () {
+    $("#btnRemovePreview").on("click", function () {
         $("#fileInput").val("");
         $("#filePreviewArea").addClass("d-none");
         $("#filePreviewBox").addClass("d-none");
@@ -591,57 +521,409 @@
         $("#btnEditImage").addClass("d-none");
     });
 
-    // ✏️ تعديل الصورة باستخدام Cropper.js
-    let cropper = null;
+    // تعديل الصور
     $("#btnEditImage").on("click", function () {
         const img = document.getElementById("previewImage");
         if (!img) return;
 
         const modalHtml = `
-            <div class="modal fade" id="editImageModal" tabindex="-1">
-                   <div class="modal-dialog modal-xl modal-dialog-centered">
-           <div class="modal-content" style="background: #fff; color: #000; border: none; border-radius: 14px;">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">✏️ تعديل الصورة</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center" style="max-height: 80vh; overflow: hidden;">
-                <img id="cropImage" src="${img.src}"
-                     style="max-width: 100%; max-height: 75vh; border-radius: 12px;" />
-            </div>
-            <div class="modal-footer border-0 justify-content-between">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" id="btnCropApply" class="btn btn-success px-4 fw-bold">✔️ حفظ</button>
-            </div>
-        </div>
-    </div>
-
+            <div class="modal fade show" id="editImageModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.9);">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                    <div class="modal-content" style="background: #1f1f1f; border: none; border-radius: 16px; overflow: hidden;">
+                        <div class="modal-header" style="border-bottom: 1px solid #333; padding: 1rem 1.5rem; background: #2a2a2a;">
+                            <h5 class="modal-title text-white fw-bold">
+                                <i class="bi bi-palette me-2"></i>تحرير الصورة
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" id="btnCloseEditor"></button>
+                        </div>
+                        
+                        <!-- شريط الأدوات -->
+                        <div class="p-3" style="background: #2a2a2a; border-bottom: 1px solid #444;">
+                            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
+                                <!-- أدوات الرسم -->
+                                <button class="btn btn-sm btn-outline-light" id="btnDraw" title="رسم حر">
+                                    <i class="bi bi-pencil"></i> رسم
+                                </button>
+                                <button class="btn btn-sm btn-outline-light" id="btnText" title="إضافة نص">
+                                    <i class="bi bi-fonts"></i> نص
+                                </button>
+                                <button class="btn btn-sm btn-outline-light" id="btnCrop" title="اقتصاص الصورة">
+                                    <i class="bi bi-crop"></i> اقتصاص
+                                </button>
+                                <button class="btn btn-sm btn-outline-light" id="btnRect" title="مستطيل">
+                                    <i class="bi bi-square"></i> مربع
+                                </button>
+                                <button class="btn btn-sm btn-outline-light" id="btnCircle" title="دائرة">
+                                    <i class="bi bi-circle"></i> دائرة
+                                </button>
+                                <button class="btn btn-sm btn-outline-light" id="btnArrow" title="سهم">
+                                    <i class="bi bi-arrow-up-right"></i> سهم
+                                </button>
+                                
+                                <div class="vr" style="height: 30px; background: #555;"></div>
+                                
+                                <!-- اختيار اللون -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="text-white small mb-0">اللون:</label>
+                                    <input type="color" id="colorPicker" value="#ff0000" class="form-control form-control-sm" style="width: 50px; height: 35px; cursor: pointer;">
+                                </div>
+                                
+                                <!-- حجم الخط/القلم -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="text-white small mb-0">الحجم:</label>
+                                    <input type="range" id="brushSize" min="1" max="20" value="3" class="form-range" style="width: 100px;">
+                                    <span class="text-white small" id="sizeValue">3</span>
+                                </div>
+                                
+                                <div class="vr" style="height: 30px; background: #555;"></div>
+                                
+                                <!-- أدوات التحكم -->
+                                <button class="btn btn-sm btn-outline-danger" id="btnDelete" title="حذف العنصر المحدد">
+                                    <i class="bi bi-trash"></i> حذف
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" id="btnUndo" title="تراجع">
+                                    <i class="bi bi-arrow-counterclockwise"></i> تراجع
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" id="btnClear" title="مسح الكل">
+                                    <i class="bi bi-eraser"></i> مسح الكل
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-body p-0" style="background: #1a1a1a; display: flex; align-items: center; justify-content: center; min-height: 500px;">
+                            <canvas id="fabricCanvas"></canvas>
+                        </div>
+                        
+                        <div class="modal-footer" style="border-top: 1px solid #333; padding: 1rem 1.5rem; background: #2a2a2a;">
+                            <button type="button" class="btn btn-secondary" id="btnCancelEdit">
+                                <i class="bi bi-x-circle me-1"></i>إلغاء
+                            </button>
+                            <button type="button" id="btnSaveEdit" class="btn btn-success px-4">
+                                <i class="bi bi-check2-circle me-1"></i>حفظ التعديلات
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>`;
+        
         $("body").append(modalHtml);
-        const modal = new bootstrap.Modal(document.getElementById("editImageModal"));
-        modal.show();
-
-        const cropImg = document.getElementById("cropImage");
-        cropper = new Cropper(cropImg, { aspectRatio: NaN, viewMode: 1 });
-
-        $("#btnCropApply").on("click", function () {
-            const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024 });
-            $("#previewImage").attr("src", canvas.toDataURL("image/png"));
-            modal.hide();
-            $("#editImageModal").remove();
-            cropper.destroy();
-            cropper = null;
+        
+        // إنشاء Canvas
+        fabricCanvas = new fabric.Canvas('fabricCanvas', {
+            backgroundColor: '#1a1a1a',
+            isDrawingMode: false
         });
-
-        $("#editImageModal").on("hidden.bs.modal", () => {
-            if (cropper) cropper.destroy();
+        
+        // تحميل الصورة
+        fabric.Image.fromURL(img.src, function(oImg) {
+            const canvasWidth = 800;
+            const scale = canvasWidth / oImg.width;
+            const canvasHeight = oImg.height * scale;
+            
+            fabricCanvas.setWidth(canvasWidth);
+            fabricCanvas.setHeight(canvasHeight);
+            
+            oImg.set({
+                scaleX: scale,
+                scaleY: scale,
+                selectable: false,
+                evented: false
+            });
+            
+            fabricCanvas.setBackgroundImage(oImg, fabricCanvas.renderAll.bind(fabricCanvas));
+        });
+        
+        // تفعيل الرسم الحر
+        $("#btnDraw").on("click", function() {
+            fabricCanvas.isDrawingMode = true;
+            fabricCanvas.freeDrawingBrush.color = currentDrawingColor;
+            fabricCanvas.freeDrawingBrush.width = currentDrawingWidth;
+            $(this).addClass("active");
+            $("#btnText, #btnCrop, #btnRect, #btnCircle, #btnArrow").removeClass("active");
+        });
+        
+        // إضافة نص
+        $("#btnText").on("click", function() {
+            fabricCanvas.isDrawingMode = false;
+            const text = new fabric.IText('اكتب هنا...', {
+                left: 100,
+                top: 100,
+                fontSize: parseInt($("#brushSize").val()) * 8,
+                fill: currentDrawingColor,
+                fontFamily: 'Arial'
+            });
+            fabricCanvas.add(text);
+            fabricCanvas.setActiveObject(text);
+            $(this).addClass("active");
+            $("#btnDraw, #btnCrop").removeClass("active");
+        });
+        
+        // اقتصاد الصورة - بالطريقة القديمة الشغالة
+        $("#btnCrop").on("click", function() {
+            fabricCanvas.isDrawingMode = false;
+            
+            // حذف أي زر "تطبيق اقتصاص" قديم
+            $("#btnApplyCrop").remove();
+            
+            // حذف أي مستطيل اقتصاص قديم
+            fabricCanvas.getObjects().forEach(obj => {
+                if (obj.cropRect === true) {
+                    fabricCanvas.remove(obj);
+                }
+            });
+            
+            // إنشاء مستطيل الاقتصاص
+            const cropRect = new fabric.Rect({
+                left: 50,
+                top: 50,
+                width: fabricCanvas.width - 100,
+                height: fabricCanvas.height - 100,
+                fill: 'rgba(0, 255, 0, 0.1)',
+                stroke: '#00ff00',
+                strokeWidth: 3,
+                strokeDashArray: [10, 5],
+                cornerColor: '#00ff00',
+                cornerSize: 15,
+                transparentCorners: false,
+                lockRotation: true,
+                hasRotatingPoint: false,
+                borderColor: '#00ff00',
+                cornerStrokeColor: '#00ff00',
+                borderScaleFactor: 2,
+                cropRect: true
+            });
+            
+            fabricCanvas.add(cropRect);
+            fabricCanvas.setActiveObject(cropRect);
+            fabricCanvas.bringToFront(cropRect);
+            fabricCanvas.renderAll();
+            
+            $(this).addClass("active btn-success");
+            $("#btnDraw, #btnText, #btnRect, #btnCircle, #btnArrow").removeClass("active");
+            
+            // إضافة زر تطبيق الاقتصاص مرة واحدة فقط
+            if ($("#btnApplyCrop").length === 0) {
+                $(".modal-footer #btnCancelEdit").after(`
+                    <button type="button" id="btnApplyCrop" class="btn btn-success me-2">
+                        <i class="bi bi-scissors me-1"></i>تطبيق الاقتصاص
+                    </button>
+                `);
+            }
+            
+            // عند تطبيق الاقتصاص
+            $("#btnApplyCrop").off("click").on("click", function() {
+                console.log("🔥 تطبيق الاقتصاص...");
+                
+                // الحصول على حدود المستطيل الدقيقة
+                const bound = cropRect.getBoundingRect();
+                console.log("📏 Bounds:", bound);
+                
+                // إنشاء canvas مؤقت
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = bound.width;
+                tempCanvas.height = bound.height;
+                const ctx = tempCanvas.getContext('2d');
+                
+                // الحصول على الصورة الأصلية من الخلفية
+                const bgImage = fabricCanvas.backgroundImage;
+                if (!bgImage) {
+                    alert("⚠️ خطأ: لا توجد صورة للاقتصاص!");
+                    return;
+                }
+                
+                // حساب الإحداثيات بالنسبة للصورة الأصلية
+                const scaleX = bgImage.scaleX || 1;
+                const scaleY = bgImage.scaleY || 1;
+                
+                const sourceX = bound.left / scaleX;
+                const sourceY = bound.top / scaleY;
+                const sourceWidth = bound.width / scaleX;
+                const sourceHeight = bound.height / scaleY;
+                
+                // رسم الجزء المقصوص
+                const imgElement = bgImage._element;
+                ctx.drawImage(
+                    imgElement,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, bound.width, bound.height
+                );
+                
+                // تحويل لـ DataURL
+                const croppedDataURL = tempCanvas.toDataURL('image/png', 1.0);
+                console.log("✅ تم إنشاء الصورة المقصوصة");
+                
+                // حذف المستطيل
+                fabricCanvas.remove(cropRect);
+                
+                // إعادة تحميل الصورة المقصوصة
+                fabric.Image.fromURL(croppedDataURL, function(newImg) {
+                    console.log("🖼️ تحميل الصورة المقصوصة...");
+                    
+                    // مسح كل شي
+                    fabricCanvas.clear();
+                    fabricCanvas.backgroundColor = '#1a1a1a';
+                    
+                    // تحديث حجم Canvas
+                    fabricCanvas.setWidth(bound.width);
+                    fabricCanvas.setHeight(bound.height);
+                    
+                    // إضافة الصورة الجديدة كخلفية
+                    newImg.set({
+                        left: 0,
+                        top: 0,
+                        selectable: false,
+                        evented: false
+                    });
+                    
+                    fabricCanvas.setBackgroundImage(newImg, fabricCanvas.renderAll.bind(fabricCanvas));
+                    fabricCanvas.renderAll();
+                    
+                    console.log("✅ تم تطبيق الاقتصاص بنجاح!");
+                });
+                
+                // إخفاء الزر وتنظيف
+                $("#btnCrop").removeClass("active btn-success");
+                $("#btnApplyCrop").remove();
+            });
+        });
+        
+        // رسم مستطيل
+        $("#btnRect").on("click", function() {
+            fabricCanvas.isDrawingMode = false;
+            const rect = new fabric.Rect({
+                left: 100,
+                top: 100,
+                fill: 'transparent',
+                stroke: currentDrawingColor,
+                strokeWidth: currentDrawingWidth,
+                width: 150,
+                height: 100
+            });
+            fabricCanvas.add(rect);
+            $(this).addClass("active");
+            $("#btnDraw, #btnCrop, #btnCircle").removeClass("active");
+        });
+        
+        // رسم دائرة
+        $("#btnCircle").on("click", function() {
+            fabricCanvas.isDrawingMode = false;
+            const circle = new fabric.Circle({
+                left: 100,
+                top: 100,
+                fill: 'transparent',
+                stroke: currentDrawingColor,
+                strokeWidth: currentDrawingWidth,
+                radius: 50
+            });
+            fabricCanvas.add(circle);
+            $(this).addClass("active");
+            $("#btnDraw, #btnCrop").removeClass("active");
+        });
+        
+        // رسم سهم
+        $("#btnArrow").on("click", function() {
+            fabricCanvas.isDrawingMode = false;
+            const arrow = new fabric.Path('M 0 0 L 100 0 L 90 -10 M 100 0 L 90 10', {
+                left: 100,
+                top: 100,
+                stroke: currentDrawingColor,
+                strokeWidth: currentDrawingWidth,
+                fill: 'transparent'
+            });
+            fabricCanvas.add(arrow);
+            $(this).addClass("active");
+            $("#btnDraw, #btnCrop, #btnRect, #btnCircle").removeClass("active");
+        });
+        
+        // تغيير اللون
+        $("#colorPicker").on("change", function() {
+            currentDrawingColor = $(this).val();
+            if (fabricCanvas.isDrawingMode) {
+                fabricCanvas.freeDrawingBrush.color = currentDrawingColor;
+            }
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                if (activeObj.type === 'i-text') {
+                    activeObj.set('fill', currentDrawingColor);
+                } else {
+                    activeObj.set('stroke', currentDrawingColor);
+                }
+                fabricCanvas.renderAll();
+            }
+        });
+        
+        // تغيير الحجم
+        $("#brushSize").on("input", function() {
+            currentDrawingWidth = parseInt($(this).val());
+            $("#sizeValue").text(currentDrawingWidth);
+            if (fabricCanvas.isDrawingMode) {
+                fabricCanvas.freeDrawingBrush.width = currentDrawingWidth;
+            }
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj && activeObj.type !== 'i-text') {
+                activeObj.set('strokeWidth', currentDrawingWidth);
+                fabricCanvas.renderAll();
+            }
+        });
+        
+        // حذف العنصر المحدد
+        $("#btnDelete").on("click", function() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                fabricCanvas.remove(activeObj);
+            }
+        });
+        
+        // تراجع
+        $("#btnUndo").on("click", function() {
+            const objects = fabricCanvas.getObjects();
+            if (objects.length > 0) {
+                fabricCanvas.remove(objects[objects.length - 1]);
+            }
+        });
+        
+        // مسح الكل
+        $("#btnClear").on("click", function() {
+            fabricCanvas.getObjects().forEach(obj => {
+                fabricCanvas.remove(obj);
+            });
+        });
+        
+        // حفظ التعديلات
+        $("#btnSaveEdit").on("click", function() {
+            const dataURL = fabricCanvas.toDataURL({
+                format: 'png',
+                quality: 1
+            });
+            
+            $("#previewImage").attr("src", dataURL);
+            
+            // تحويل لـ Blob وتحديث FileInput
+            fetch(dataURL)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], "edited-image.png", { type: "image/png" });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    $("#fileInput")[0].files = dataTransfer.files;
+                    
+                    $("#editImageModal").remove();
+                    fabricCanvas.dispose();
+                    fabricCanvas = null;
+                });
+        });
+        
+        // إلغاء
+        $("#btnCloseEditor, #btnCancelEdit").on("click", function() {
             $("#editImageModal").remove();
+            if (fabricCanvas) {
+                fabricCanvas.dispose();
+                fabricCanvas = null;
+            }
         });
     });
 
-
-
-
+    // عرض الرسائل
     function appendMessage(m) {
         let filePreview = "";
         const name = m.fileName || "ملف مرفق";
@@ -649,7 +931,6 @@
         const fileUrl = m.fileUrl;
         const fileSize = m.fileSize || 0;
 
-        // 🔹 للصور
         if (type.startsWith("image/")) {
             filePreview = `
                 <div class="position-relative mt-2">
@@ -661,7 +942,6 @@
                     </a>
                 </div>`;
         }
-        // 🔹 للفيديو
         else if (type.startsWith("video/")) {
             filePreview = `
                 <div class="position-relative mt-2">
@@ -674,7 +954,6 @@
                     </a>
                 </div>`;
         }
-        // 🔹 للصوت
         else if (type.startsWith("audio/")) {
             filePreview = `
                 <div class="d-flex align-items-center mt-2 bg-light rounded p-2" style="max-width:240px;">
@@ -684,7 +963,6 @@
                     <a href="${fileUrl}" download="${name}" class="btn btn-sm btn-outline-secondary ms-2">⬇️</a>
                 </div>`;
         }
-        // 🔹 لباقي الملفات
         else if (fileUrl) {
             filePreview = `
             <div class="position-relative mt-2">
@@ -713,42 +991,18 @@
                 </div>
                 ${m.isMine ? `
                     <div class="msg-actions">
-                        <button class="edit-msg" title="تعديل الرسالة">✏️</button>
-                        <button class="delete-msg" title="حذف الرسالة">🗑️</button>
+                        <button class="btn btn-sm btn-light edit-msg">✏️</button>
+                        <button class="btn btn-sm btn-danger delete-msg">🗑️</button>
                     </div>
                 ` : ""}
             </div>
         </div>`;
 
-
-        // 🔥 تصميم جديد لـ SweetAlert - أنيق وحديث
-const swalDesign = {
-    customClass: {
-        popup: 'rounded-3xl shadow-2xl border-0',
-        title: 'text-2xl font-bold text-gray-800',
-        htmlContainer: 'text-gray-600 text-lg',
-        confirmButton: 'btn-primary-custom rounded-xl px-8 py-3 font-semibold',
-        cancelButton: 'btn-secondary-custom rounded-xl px-8 py-3 font-semibold',
-        actions: 'gap-4'
-    },
-    buttonsStyling: false,
-    showClass: {
-        popup: 'animate__animated animate__fadeInDown animate__faster'
-    },
-    hideClass: {
-        popup: 'animate__animated animate__fadeOutUp animate__faster'
-    }
-};
-
-
-
         $("#chatBody").append(html);
         $("#chatBody").scrollTop($("#chatBody")[0].scrollHeight);
     }
 
-
-
-
+    // تعديل وحذف الرسائل
     $(document).on("click", ".edit-msg", function () {
         const msgDiv = $(this).closest(".msg");
         const msgId = msgDiv.data("id");
@@ -758,22 +1012,19 @@ const swalDesign = {
             title: "✏️ تعديل الرسالة",
             input: "textarea",
             inputValue: oldText,
-            inputAttributes: {
-                "aria-label": "نص الرسالة",
-                "class": "rounded-2xl p-4 border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
-            },
+            inputAttributes: { "aria-label": "نص الرسالة" },
             showCancelButton: true,
             confirmButtonText: "💾 حفظ التعديل",
             cancelButtonText: "إلغاء",
-            confirmButtonColor: "#7B68EE",
-            cancelButtonColor: "#6B7280",
-            background: "#FFFFFF",
+            confirmButtonColor: "#2563eb",
+            cancelButtonColor: "#6c757d",
+            background: "#fff",
             customClass: {
-                popup: 'rounded-3xl shadow-2xl',
-                confirmButton: 'btn btn-primary px-4 py-2 rounded-xl',
-                cancelButton: 'btn btn-secondary px-4 py-2 rounded-xl'
+                popup: "rounded-4 shadow-lg p-4",
+                title: "fw-bold fs-5 text-primary",
+                confirmButton: "btn btn-primary px-4 fw-bold",
+                cancelButton: "btn btn-secondary px-4 fw-bold"
             },
-            buttonsStyling: false,
             preConfirm: (value) => {
                 if (!value.trim()) {
                     Swal.showValidationMessage("الرجاء إدخال نص الرسالة.");
@@ -783,58 +1034,28 @@ const swalDesign = {
         }).then((result) => {
             if (result.isConfirmed) {
                 const newText = result.value;
+                $.post("/Chat/EditMessage", { messageId: msgId, newText }, () => {
+                    msgDiv.find(".msg-content > div:first").text(newText);
 
-                $.post("/Chat/EditMessage", { messageId: msgId, newText: newText }, function(response) {
-                    if (response.success) {
-                        // ✅ تحديث النص في الواجهة
-                        msgDiv.find(".msg-content > div:first").text(newText);
-
-                        // ✅ إضافة علامة (معدلة) إذا لم تكن موجودة
-                        if (msgDiv.find(".text-muted.fst-italic").length === 0) {
-                            msgDiv.find(".msg-content").append('<small class="text-muted fst-italic">(معدلة)</small>');
-                        }
-
-                        // ✅ إشعار النجاح
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: "top-end",
-                            showConfirmButton: false,
-                            timer: 2000,
-                            timerProgressBar: true,
-                            background: 'linear-gradient(135deg, #7B68EE, #9370DB)',
-                            color: 'white',
-                            customClass: {
-                                popup: 'rounded-2xl shadow-lg'
-                            }
-                        });
-                        Toast.fire({
-                            icon: "success",
-                            title: "تم تعديل الرسالة بنجاح 🎉"
-                        });
-                    }
-                }).fail(function() {
                     Swal.fire({
-                        title: "❌ خطأ",
-                        text: "فشل في تعديل الرسالة",
-                        icon: "error",
-                        confirmButtonColor: "#7B68EE"
+                        title: "✅ تم الحفظ",
+                        text: "تم تعديل الرسالة بنجاح.",
+                        icon: "success",
+                        timer: 1200,
+                        showConfirmButton: false
                     });
                 });
             }
         });
     });
 
-
-
-
-
-      $(document).on("click", ".delete-msg", function () {
+    $(document).on("click", ".delete-msg", function () {
         const msgDiv = $(this).closest(".msg");
         const msgId = msgDiv.data("id");
 
         Swal.fire({
             title: "🗑️ هل أنت متأكد؟",
-            text: "سيتم حذف هذه الرسالة نهائيًا ولن تكون مرئية لأي من الطرفين.",
+            text: "سيتم حذف هذه الرسالة نهائيًا.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
@@ -850,46 +1071,21 @@ const swalDesign = {
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post("/Chat/DeleteMessage", {
-                    messageId: msgId,
-                    deleteForAll: true
-                }, function(response) {
-                    // 🔥 إخفاء الرسالة فوراً مع تأثير
-                    msgDiv.animate({
-                        opacity: 0,
-                        height: 0,
-                        marginTop: 0,
-                        marginBottom: 0,
-                        paddingTop: 0,
-                        paddingBottom: 0
-                    }, 300, function() {
-                        $(this).remove();
-
-                        // ✅ إظهار إشعار النجاح
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: "top-end",
-                            showConfirmButton: false,
-                            timer: 2000,
-                            timerProgressBar: true,
-                        });
-                        Toast.fire({
-                            icon: "success",
-                            title: "تم حذف الرسالة بنجاح"
-                        });
+                $.post("/Chat/DeleteMessage", { messageId: msgId, deleteForAll: true }, () => {
+                    Swal.fire({
+                        title: "✅ تم الحذف",
+                        text: "تم حذف الرسالة بنجاح.",
+                        icon: "success",
+                        timer: 1300,
+                        showConfirmButton: false
                     });
-                }).fail(function() {
-                    Swal.fire("❌ خطأ", "فشل في حذف الرسالة", "error");
+                    msgDiv.html('<div class="text-muted fst-italic">🚫 تم حذف هذه الرسالة</div>');
                 });
             }
         });
     });
 
-
-
-
-
-        // 🧩 عند الضغط على الصورة داخل الشات
+    // معاينة الوسائط
     $(document).on("click", ".chat-image", function () {
         const src = $(this).attr("src");
         const fileName = $(this).attr("alt") || "image";
@@ -899,37 +1095,6 @@ const swalDesign = {
         $("#imagePreviewModal").modal("show");
     });
 
-
-    // 🧮 تنسيق حجم الملف
-      function formatFileSize(bytes) {
-        if (bytes === 0) return '0 B';
-        if (bytes < 1024) return `${bytes} B`;
-        const kb = bytes / 1024;
-        if (kb < 1024) return `${kb.toFixed(1)} KB`;
-        const mb = kb / 1024;
-        if (mb < 1024) return `${mb.toFixed(1)} MB`;
-        const gb = mb / 1024;
-        return `${gb.toFixed(1)} GB`;
-    }
-
-    // 🪟 عند الضغط على الصورة → فتح معاينة كاملة
-    $(document).on("click", ".chat-img", function () {
-        const src = $(this).attr("src");
-        const modal = `
-            <div class="modal fade" id="imgPreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered modal-lg">
-                    <div class="modal-content bg-transparent border-0 shadow-none">
-                        <img src="${src}" class="w-100 rounded shadow-lg" />
-                    </div>
-                </div>
-            </div>`;
-        $("body").append(modal);
-        const m = new bootstrap.Modal(document.getElementById("imgPreviewModal"));
-        m.show();
-        $("#imgPreviewModal").on("hidden.bs.modal", () => $("#imgPreviewModal").remove());
-    });
-
-        // 🎥 عند الضغط على الفيديو داخل الشات
     $(document).on("click", ".chat-video", function () {
         const src = $(this).find("source").attr("src");
         $("#previewVideo").attr("src", src);
@@ -938,7 +1103,6 @@ const swalDesign = {
         $("#videoPreviewModal").modal("show");
     });
 
-    // 🧹 لما يغلق المودال، نوقف تشغيل الفيديو
     $('#videoPreviewModal').on('hidden.bs.modal', function () {
         const video = document.getElementById("previewVideo");
         if (video) {
@@ -947,42 +1111,7 @@ const swalDesign = {
         }
     });
 
-
-        // 📄 عند الضغط على ملف (PDF / Word / Excel)
-    $(document).on("click", ".chat-file", function () {
-        const fileUrl = $(this).data("file");
-        const type = ($(this).data("type") || "").toLowerCase();
-        const iframe = $("#previewFileFrame");
-        const downloadBtn = $("#downloadFileBtn");
-
-        downloadBtn.attr("href", fileUrl);
-
-        if (type.includes("pdf")) {
-            // عرض مباشر داخل iframe
-            iframe.attr("src", fileUrl);
-        }
-        else if (type.includes("word") || type.includes("officedocument.word")) {
-            // عرض Word عبر Office Viewer
-            iframe.attr("src", `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`);
-        }
-        else if (type.includes("excel") || type.includes("spreadsheetml")) {
-            // عرض Excel عبر Office Viewer
-            iframe.attr("src", `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`);
-        }
-        else {
-            // أنواع غير مدعومة → رابط تحميل فقط
-            iframe.attr("src", "");
-            alert("هذا النوع من الملفات لا يمكن معاينته، يمكنك تحميله مباشرة.");
-            return;
-        }
-
-        $("#filePreviewModal").modal("show");
-    });
-
-
-
-
-    // ✅ التبديل بين المحادثات والمجموعات
+    // المجموعات والبحث
     $("#tab-chats").click(() => {
         $("#tab-chats").addClass("active");
         $("#tab-groups").removeClass("active");
@@ -1001,26 +1130,20 @@ const swalDesign = {
         $("#userSearchInput").attr("placeholder", "ابحث باسم المجموعة...");
     });
 
-    // ✅ إنشاء المجموعة
     $("#btnNewGroup").click(() => $("#createGroupModal").modal("show"));
+
     $("#saveGroupBtn").click(() => {
         let title = $("#groupNameInput").val().trim();
         if (!title) return alert("الرجاء إدخال اسم المجموعة.");
         $.post("/Groups/Create", { title }, () => location.reload())
-         .fail(() => alert("حدث خطأ أثناء إنشاء المجموعة."));
+            .fail(() => alert("حدث خطأ أثناء إنشاء المجموعة."));
     });
 
-
-
-
-        $("#userSearchInput").on("keyup", function () {
+    $("#userSearchInput").on("keyup", function () {
         const q = $(this).val().trim();
         if (q.length < 2) return $("#userSearchResults").empty();
 
-       const url = `/Chat/SearchUsers`;
-
-
-        $.get(url, { query: q }, users => {
+        $.get(`/Chat/SearchUsers`, { query: q }, users => {
             const box = $("#userSearchResults");
             box.empty();
 
@@ -1046,14 +1169,11 @@ const swalDesign = {
         });
     });
 
-
-        // ✅ عند الضغط على "بدء محادثة"
     $(document).on("click", ".btnStartChat", function () {
         const targetUserId = $(this).data("id");
 
         $.post("/Chat/StartChat", { targetUserId }, res => {
             if (res.conversationId) {
-                // نعيد تحميل الصفحة ونفتح المحادثة الجديدة
                 location.href = `/Chat?open=${res.conversationId}`;
             } else {
                 alert("حدث خطأ أثناء إنشاء المحادثة.");
@@ -1063,35 +1183,35 @@ const swalDesign = {
         });
     });
 
-   
-</script>
+    $("#btnGroupInfo").on("click", function () {
+        const id = $(this).data("group-id");
+        if (id) window.location.href = `/Groups/Details/${id}`;
+    });
 
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        if (bytes < 1024) return `${bytes} B`;
+        const kb = bytes / 1024;
+        if (kb < 1024) return `${kb.toFixed(1)} KB`;
+        const mb = kb / 1024;
+        if (mb < 1024) return `${mb.toFixed(1)} MB`;
+        const gb = mb / 1024;
+        return `${gb.toFixed(1)} GB`;
+    }
 
-
-<script src="~/js/IndexChat.js" asp-append-version="true"></script>
-<!-- 🧩 مكتبة SignalR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-
-<script>
-    // ✅ إنشاء اتصال SignalR
+    // SignalR
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/hubs/tawasul")
         .build();
 
-  
-
-    // ✅ استقبال الرسالة من السيرفر
     connection.on("ReceiveMessage", (msg) => {
         console.log("📩 Received:", msg);
 
-        // 🧠 تجاهل الرسالة إذا المرسل هو المستخدم الحالي
         if (msg.senderId === currentUserId) return;
 
-        // ✅ إذا المستخدم داخل نفس المحادثة المفتوحة
         if (msg.conversationId === currentConvId) {
             appendMessage(msg);
         } else {
-            // 🔵 إذا كانت رسالة لمحادثة أخرى → أضف Badge
             const item = $(`.conv-item[data-id='${msg.conversationId}']`);
             if (item.length) {
                 let badge = item.find(".badge-unread");
@@ -1102,52 +1222,20 @@ const swalDesign = {
                     let count = parseInt(badge.text()) || 0;
                     badge.text(count + 1);
                 }
-            } else {
-                console.warn("⚠️ لم يتم العثور على العنصر للمحادثة:", msg.conversationId);
             }
         }
     });
 
-    // ✅ مراقبة حالة المستخدمين (Online / Offline)
-    connection.on("UserStatusChanged", (userId, isOnline) => {
-        console.log(`👤 المستخدم ${userId} الآن ${isOnline ? "متصل" : "غير متصل"}`);
-    });
-
-    // ✅ بدء الاتصال
-    connection.start()
-        .then(() => console.log("✅ Connected to ChatHub!"))
-        .catch(err => console.error("❌ Hub Error:", err));
-
-    // ✅ عند الضغط على محادثة
-    $(document).on("click", ".conv-item", function () {
-        const id = $(this).data("id");
-        currentConvId = id;
-
-        // 🟢 إزالة البادج
-        $(this).find(".badge-unread").remove();
-
-        // انضم لغرفة SignalR
-        if (connection.state === signalR.HubConnectionState.Connected) {
-            connection.invoke("JoinConversation", id.toString());
-        }
-    });
-
-       // عند تعديل رسالة
-       // عند تعديل رسالة
     connection.on("MessageEdited", (msg) => {
         const div = $(`.msg[data-id='${msg.id}']`);
         div.find(".msg-content > div:first").text(msg.text);
-
     });
 
-    // عند حذف رسالة
-     // عند حذف رسالة عبر SignalR
     connection.on("MessageDeleted", (data) => {
         const msgDiv = $(`.msg[data-id='${data.id}']`);
 
         if (msgDiv.length > 0) {
             if (data.deletedCompletely) {
-                // 🔥 حذف كامل - إزالة من الواجهة
                 msgDiv.animate({
                     opacity: 0,
                     height: 0,
@@ -1159,14 +1247,24 @@ const swalDesign = {
                     $(this).remove();
                 });
             } else {
-                // حذف جزئي (للمستخدم الحالي فقط)
-                msgDiv.html('<div class="text-muted fst-italic p-2 text-center">🚫 تم حذف هذه الرسالة</div>');
+                msgDiv.html('<div class="text-muted fst-italic">🚫 تم حذف هذه الرسالة</div>');
             }
         }
     });
 
+    connection.start()
+        .then(() => console.log("✅ Connected to ChatHub!"))
+        .catch(err => console.error("❌ Hub Error:", err));
 
+    $(document).on("click", ".conv-item", function () {
+        const id = $(this).data("id");
+        currentConvId = id;
 
+        $(this).find(".badge-unread").remove();
 
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            connection.invoke("JoinConversation", id.toString());
+        }
+    });
 </script>
 
