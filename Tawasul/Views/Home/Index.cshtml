@@ -1,8 +1,190 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "الرئيسية - Tawasul";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}
+
+<!-- 🔹 قسم البطل (Hero) -->
+<section class="home-hero">
+    <div class="hero-background"></div>
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-badge">
+                🚀 منصة الدردشة الحديثة
+            </div>
+
+            <h1 class="hero-title">
+                تواصل بكل سهولة ومرونة
+            </h1>
+
+            <p class="hero-subtitle">
+                Tawasul منصتك المفضلة للدردشة الفورية، تواصل مع أصدقائك وزملائك في أي وقت ومن أي مكان بتجربة مستخدم استثنائية.
+            </p>
+
+            <div class="hero-actions">
+                @if (User.Identity?.IsAuthenticated ?? false)
+                {
+                    <a asp-controller="Chat" asp-action="Index" class="hero-btn hero-btn-primary">
+                        <i class="bi bi-chat-dots"></i>
+                        ابدأ المحادثة
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Register" class="hero-btn hero-btn-primary">
+                        <i class="bi bi-person-plus"></i>
+                        انضم إلينا مجانًا
+                    </a>
+                    <a asp-controller="Account" asp-action="Login" class="hero-btn hero-btn-secondary">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        تسجيل الدخول
+                    </a>
+                }
+            </div>
+
+            <div class="security-badge">
+                <i class="bi bi-shield-check"></i>
+                آمن ومشفّر بنسبة 100%
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 🔹 قسم الميزات -->
+<section class="features-section">
+    <div class="container">
+        <h2 class="section-title">لماذا تختار Tawasul؟</h2>
+        <p class="section-subtitle">
+            منصة شاملة تجمع كل ما تحتاجه للتواصل الفعال مع فريقك وأصدقائك
+        </p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-lightning-charge"></i>
+                </div>
+                <h3 class="feature-title">سريع وفوري</h3>
+                <p class="feature-description">
+                    رسائل فورية تصل في أقل من ثانية، تجربة سلسة بدون تأخير مع تقنية WebSocket المتطورة.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-shield-lock"></i>
+                </div>
+                <h3 class="feature-title">آمن ومحمي</h3>
+                <p class="feature-description">
+                    تشفير end-to-end لحماية محادثاتك، مع خوادم آمنة ونسخ احتياطية تلقائية.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h3 class="feature-title">مجموعات متكاملة</h3>
+                <p class="feature-description">
+                    أنشئ مجموعات عمل أو صداقة، وأدر الأعضاء بسهولة مع صلاحيات متقدمة.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-file-earmark-arrow-up"></i>
+                </div>
+                <h3 class="feature-title">مشاركة الملفات</h3>
+                <p class="feature-description">
+                    شارك الصور، الفيديوهات، المستندات بسهولة مع دعم جميع الصيغ الشائعة.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-mobile"></i>
+                </div>
+                <h3 class="feature-title">متجاوب بالكامل</h3>
+                <p class="feature-description">
+                    تجربة مثالية على جميع الأجهزة، من الجوال إلى اللابتوب، بدون حاجة للتطبيقات.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-translate"></i>
+                </div>
+                <h3 class="feature-title">واجهة عربية</h3>
+                <p class="feature-description">
+                    واجهة مستخدم كاملة باللغة العربية، مصممة خصيصًا للمستخدم العربي.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 🔹 قسم الإحصائيات -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-number" data-target="50000">50,000</span>
+                <div class="stat-label">مستخدم نشط</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" data-target="1000000">1,000,000</span>
+                <div class="stat-label">رسالة يوميًا</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" data-target="99">99</span>
+                <div class="stat-label">٪ وقت تشغيل</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" data-target="150">150</span>
+                <div class="stat-label">دولة حول العالم</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 🔹 قسم النداء للعمل -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card">
+            <h2 class="cta-title">جاهز للبدء؟</h2>
+            <p class="cta-description">
+                انضم إلى آلاف المستخدمين الذين يعتمدون على Tawasul للتواصل اليومي. سجل الآن واستمتع بتجربة دردشة استثنائية.
+            </p>
+
+            @if (User.Identity?.IsAuthenticated ?? false)
+            {
+                <a asp-controller="Chat" asp-action="Index" class="hero-btn hero-btn-primary">
+                    <i class="bi bi-arrow-right"></i>
+                    ابدأ المحادثة الآن
+                </a>
+            }
+            else
+            {
+                <div class="hero-actions">
+                    <a asp-controller="Account" asp-action="Register" class="hero-btn hero-btn-primary">
+                        <i class="bi bi-person-plus"></i>
+                        سجل مجانًا
+                    </a>
+                    <a asp-controller="Account" asp-action="Login" class="hero-btn hero-btn-secondary">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        لديك حساب؟ ادخل هنا
+                    </a>
+                </div>
+            }
+
+            <div class="community-highlight">
+                <strong>💡 معلومة سريعة:</strong> يمكنك إنشاء مجموعات تضم حتى 500 عضو وإدارة الصلاحيات بسهولة!
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/home.js" asp-append-version="true"></script>
+}

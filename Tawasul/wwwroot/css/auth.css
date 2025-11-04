@@ -1,0 +1,513 @@
+﻿/* 🔹 تصميم صفحات المصادقة */
+.auth-container {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.auth-card {
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
+    transition: all 0.3s ease;
+}
+
+    .auth-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 50px var(--shadow);
+    }
+
+.auth-header {
+    background: var(--gradient);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    color: white;
+}
+
+.auth-logo {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.auth-subtitle {
+    opacity: 0.9;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.auth-body {
+    padding: 2.5rem 2rem;
+}
+
+.auth-title {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.auth-description {
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+}
+
+/* 🔹 حقول الإدخال */
+.auth-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.auth-form .form-label {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.auth-form .form-control {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--background);
+}
+
+    .auth-form .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--shadow);
+        background: var(--surface);
+    }
+
+    .auth-form .form-control:invalid:not(:focus) {
+        border-color: var(--error);
+    }
+
+/* 🔹 زر الإرسال */
+.auth-submit-btn {
+    background: var(--gradient);
+    border: none;
+    border-radius: 12px;
+    padding: 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: white;
+    width: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+    .auth-submit-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--shadow);
+    }
+
+    .auth-submit-btn:active {
+        transform: translateY(0);
+    }
+
+    .auth-submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* 🔹 تأثير الموجة على الزر */
+    .auth-submit-btn::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.3s, height 0.3s;
+    }
+
+    .auth-submit-btn:active::after {
+        width: 100%;
+        height: 100%;
+    }
+
+/* 🔹 روابط إضافية */
+.auth-links {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.auth-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+    .auth-link:hover {
+        color: var(--primary-dark);
+        transform: translateX(5px);
+    }
+
+/* 🔹 رسائل التحقق */
+.text-danger {
+    color: var(--error) !important;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.field-validation-error {
+    background: rgba(245, 101, 101, 0.1);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border-right: 3px solid var(--error);
+}
+
+/* 🔹 رسائل النجاح */
+.alert-success {
+    background: rgba(72, 187, 120, 0.1);
+    border: 1px solid var(--success);
+    border-right: 3px solid var(--success);
+    color: var(--success);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 🔹 تحسينات للاستجابة */
+@media (max-width: 576px) {
+    .auth-container {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        max-width: 100%;
+    }
+
+    .auth-header {
+        padding: 2rem 1.5rem;
+    }
+
+    .auth-body {
+        padding: 2rem 1.5rem;
+    }
+
+    .auth-logo {
+        font-size: 2rem;
+    }
+}
+
+/* 🔹 تأثيرات الحركة */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-card {
+    animation: slideInUp 0.6s ease-out;
+}
+
+.auth-form .form-group {
+    animation: slideInUp 0.6s ease-out;
+    animation-fill-mode: both;
+}
+
+    .auth-form .form-group:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    .auth-form .form-group:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .auth-form .form-group:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+/* 🔹 حالة التحميل */
+.auth-submit-btn.loading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+    .auth-submit-btn.loading::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 🔹 تحسينات إضافية */
+.input-group {
+    position: relative;
+}
+
+    .input-group .form-control {
+        padding-right: 2.5rem;
+    }
+
+.password-toggle {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+    .password-toggle:hover {
+        color: var(--primary);
+    }
+
+/* 🔹 تذكرني */
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+    .remember-me input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+    }
+
+    .remember-me label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+
+/* 🔹 تحسينات إضافية لصفحة التسجيل */
+.register-requirements {
+    background: rgba(123, 104, 238, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.requirements-title {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.requirements-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+    .requirements-list li {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .requirements-list li::before {
+            content: '•';
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+/* 🔹 قوة كلمة المرور */
+.password-strength {
+    margin-top: 0.5rem;
+}
+
+.strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.strength-weak {
+    background: var(--error);
+    width: 25%;
+}
+
+.strength-fair {
+    background: var(--warning);
+    width: 50%;
+}
+
+.strength-good {
+    background: var(--success);
+    width: 75%;
+}
+
+.strength-strong {
+    background: var(--primary);
+    width: 100%;
+}
+
+.strength-text {
+    font-size: 0.8rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+/* 🔹 تحسينات للحقول الإضافية */
+.name-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 576px) {
+    .name-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 🔹 شروط الخدمة */
+.terms-agreement {
+    background: rgba(123, 104, 238, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+}
+
+.terms-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+    .terms-checkbox input[type="checkbox"] {
+        margin-top: 0.2rem;
+        flex-shrink: 0;
+    }
+
+.terms-text {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+    .terms-text a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+        .terms-text a:hover {
+            text-decoration: underline;
+        }
+
+/* 🔹 رسائل النجاح للتسجيل */
+.welcome-message {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(72, 187, 120, 0.1);
+    border: 1px solid var(--success);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.welcome-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* 🔹 تحسينات للتحقق من البريد الإلكتروني */
+.email-verification {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(123, 104, 238, 0.1);
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+/* 🔹 تحسينات للأخطاء */
+.validation-summary-errors {
+    background: rgba(245, 101, 101, 0.1);
+    border: 1px solid var(--error);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+    .validation-summary-errors ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .validation-summary-errors li {
+        color: var(--error);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .validation-summary-errors li:before {
+            content: '⚠️';
+            font-size: 0.8rem;
+        }

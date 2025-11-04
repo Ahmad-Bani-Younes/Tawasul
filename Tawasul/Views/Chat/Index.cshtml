@@ -5,10 +5,9 @@
 
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
-
+<link rel="stylesheet" href="~/css/IndexChat.css" asp-append-version="true" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="/css/IndexChat.css" />
 <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 
@@ -75,6 +74,48 @@
                     </div>
                 }
             </div>
+
+
+
+            <!-- (الكود الجديد) 🔽 شريط الإعدادات السفلي 🔽 -->
+            <div class="sidebar-footer">
+
+                <!-- (1) القائمة المنبثقة (مخفية) -->
+                <div class="profile-menu-popup" id="profileMenu">
+                    <a href="@Url.Action("Index", "Manage")" class="profile-menu-item">
+                        <i class="bi bi-person-circle"></i>
+                        <span>حسابي</span>
+                    </a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="profile-menu-item">
+                        <button type="submit" class="logout-btn">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- (2) الأزرار (الأيقونات) -->
+                <!-- (2) الأزرار (الأيقونات) -->
+                <div class="profile-triggers">
+
+                    <!-- 🔽🔽 (هذا هو التعديل) 🔽🔽 -->
+                    <!-- (1) إضافة اسم المستخدم) -->
+                    <span class="user-name-display">@User.Identity.Name</span>
+
+                    <!-- (2) حاوية الأيقونات) -->
+                    <div class="profile-icons">
+                        <button id="profileMenuBtn" class="profile-btn" title="حسابي">
+                            <i class="bi bi-person"></i>
+                        </button>
+                        <button class="profile-btn" title="الاعدادات (مستقبلاً)">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
+                    <!-- 🔼🔼 (انتهى التعديل) 🔼🔼 -->
+
+                </div>
+            </div>
+            <!-- (انتهى الكود الجديد) 🔼 -->
         </div>
 
         <!-- 🔹 منطقة الرسائل -->
@@ -230,6 +271,25 @@
         }
     });
 
+
+        // ... (بعد $(document).ready(...) )
+
+    // ✅ (JS جديد) فتح وإغلاق قائمة الحساب
+    $("#profileMenuBtn").on("click", function(e) {
+        e.stopPropagation(); // (لمنع الإغلاق الفوري)
+        $("#profileMenu").toggleClass("active");
+    });
+
+    // (إغلاق القائمة عند الضغط في أي مكان آخر)
+    $(document).on("click", function() {
+        $("#profileMenu").removeClass("active");
+    });
+
+    // (منع إغلاق القائمة عند الضغط عليها)
+    $("#profileMenu").on("click", function(e) {
+        e.stopPropagation();
+    });
+
     // عند اختيار محادثة → نخفي شعار النظام ونظهر مربع الإدخال
     $(document).on("click", ".conv-item", function () {
         $(".conv-item").removeClass("active");
@@ -313,23 +373,49 @@
     });
 
     // ✅ إرسال الرسائل
-    $("#sendBtn").click(sendMessage);
-    $("#messageInput").keypress(e => { if (e.which === 13) sendMessage(); });
+       $("#sendBtn").click(sendMessage);
+       // ✅ التعديل: تفعيل الانتر للإرسال سواء للملفات أو النص
+    $("#messageInput").keypress(function(e) {
+        if (e.which === 13) { // زر الانتر
+            const text = $("#messageInput").val().trim();
+            const file = $("#fileInput")[0].files[0];
 
-      function sendMessage() {
+            // ✅ السماح بالإرسال إذا كان هناك نص أو ملف
+            if (text || file) {
+                sendMessage();
+                e.preventDefault(); // منع السلوك الافتراضي (إضافة سطر جديد)
+            }
+        }
+    });
+
+
+        $("#messageInput").on("input", function() {
+        const text = $(this).val().trim();
+        const file = $("#fileInput")[0].files[0];
+
+        // ✅ تفعيل الزر إذا كان هناك نص أو ملف
+        if (text || file) {
+            $("#sendBtn").prop("disabled", false);
+        } else {
+            $("#sendBtn").prop("disabled", true);
+        }
+    });
+
+    function sendMessage() {
         const text = $("#messageInput").val().trim();
         const file = $("#fileInput")[0].files[0];
+
+        // ✅ التعديل: السماح بإرسال ملف بدون نص
         if (!text && !file) return;
 
         const formData = new FormData();
         formData.append("conversationId", currentConvId);
-        formData.append("text", text);
-        if (file) formData.append("file", file);
-            if (file) {
-        console.log("📎 نوع الملف المرسل:", file.type); // ← أضف هذا السطر هنا
-        formData.append("file", file);
-    }
+        formData.append("text", text || ""); // ✅ أرسل نص فارغ إذا لم يكن هناك نص
 
+        if (file) {
+            console.log("📎 نوع الملف المرسل:", file.type);
+            formData.append("file", file);
+        }
 
         $.ajax({
             url: "/Chat/SendMessage",
@@ -345,15 +431,21 @@
                 $("#messageInput").val("");
                 $("#fileInput").val("");
 
-                // ✅ إخفاء المعاينة بعد الإرسال
+                // ✅ إخفاء جميع أنواع المعاينة بعد الإرسال
                 $("#filePreviewArea").addClass("d-none");
+                $("#filePreviewBox").addClass("d-none");
                 $("#filePreviewContent").empty();
                 $("#btnEditImage").addClass("d-none");
+
+                // ✅ إعادة تعيين زر الإرسال
+                $("#sendBtn").prop("disabled", true);
             },
-            error: () => alert("حدث خطأ أثناء إرسال الرسالة.")
+            error: (xhr) => {
+                console.error("❌ خطأ في الإرسال:", xhr.responseText);
+                alert("حدث خطأ أثناء إرسال الرسالة: " + xhr.responseText);
+            }
         });
     }
-
 
         // 📎 عند اختيار ملف من الجهاز
     $("#fileInput").change(function () {
@@ -410,69 +502,93 @@
     // 📎 عند الضغط على زر المرفق
     $("#attachBtn").click(() => $("#fileInput").click());
         // ✅ عند اختيار ملف → إظهار المعاينة
-    $("#fileInput").on("change", function () {
-        const file = this.files[0];
-        if (!file) return;
+   $("#fileInput").on("change", function () {
+           const file = this.files[0];
+        const text = $("#messageInput").val().trim();
 
-        const previewArea = $("#filePreviewArea");
-        const previewContent = $("#filePreviewContent");
-        previewContent.empty();
+        if (file) {
+            $("#sendBtn").prop("disabled", false);
 
-        const type = file.type.toLowerCase();
-
-        // 📸 للصور
-        if (type.startsWith("image/")) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                previewContent.html(`
-                    <img id="previewImage" src="${e.target.result}"
-                         class="img-fluid rounded shadow-sm"
-                         style="max-height:300px; object-fit:contain;" />
-                `);
-                $("#btnEditImage").removeClass("d-none");
-            };
-            reader.readAsDataURL(file);
+            // ✅ إعطاء التركيز لحقل النص لتمكين استخدام الانتر
+            $("#messageInput").focus();
+        } else if (!text) {
+            $("#sendBtn").prop("disabled", true);
         }
-        // 🎥 للفيديو
-        else if (type.startsWith("video/")) {
-            const url = URL.createObjectURL(file);
+
+    const previewArea = $("#filePreviewArea");
+    const previewBox = $("#filePreviewBox");
+    const previewContent = $("#filePreviewContent");
+    
+    // إخفاء جميع المعاينات السابقة
+    previewArea.addClass("d-none");
+    previewBox.addClass("d-none");
+    previewContent.empty();
+
+    const type = file.type.toLowerCase();
+
+    // 📸 للصور - استخدم filePreviewArea
+    if (type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = e => {
             previewContent.html(`
-                <video controls style="max-width:100%; border-radius:10px; max-height:300px;">
-                    <source src="${url}" type="${type}">
-                    متصفحك لا يدعم الفيديو.
-                </video>
+                <img id="previewImage" src="${e.target.result}"
+                     class="img-fluid rounded shadow-sm"
+                     style="max-height:300px; object-fit:contain;" />
             `);
-            $("#btnEditImage").addClass("d-none");
-        }
-        // 🔊 للصوت
-        else if (type.startsWith("audio/")) {
-            const url = URL.createObjectURL(file);
-            previewContent.html(`
-                <audio controls style="width:250px;">
+            $("#btnEditImage").removeClass("d-none");
+        };
+        reader.readAsDataURL(file);
+        previewArea.removeClass("d-none");
+    }
+    // 🎥 للفيديو - استخدم filePreviewArea
+    else if (type.startsWith("video/")) {
+        const url = URL.createObjectURL(file);
+        previewContent.html(`
+            <video controls style="max-width:100%; border-radius:10px; max-height:300px;">
+                <source src="${url}" type="${type}">
+                متصفحك لا يدعم الفيديو.
+            </video>
+        `);
+        $("#btnEditImage").addClass("d-none");
+        previewArea.removeClass("d-none");
+    }
+    // 🔊 للصوت - استخدم filePreviewArea
+    else if (type.startsWith("audio/")) {
+        const url = URL.createObjectURL(file);
+        previewContent.html(`
+            <div class="d-flex flex-column align-items-center">
+                <audio controls style="width:100%; max-width:300px;">
                     <source src="${url}" type="${type}">
                     متصفحك لا يدعم الصوت.
                 </audio>
-            `);
-            $("#btnEditImage").addClass("d-none");
-        }
-        // 📄 أي ملفات أخرى
-        else {
-            previewContent.html(`
-                <div class="p-3 bg-light rounded border">
-                    📎 ${file.name} (${formatFileSize(file.size)})
-                </div>
-            `);
-            $("#btnEditImage").addClass("d-none");
-        }
-
+                <div class="mt-2 text-muted small">${file.name}</div>
+            </div>
+        `);
+        $("#btnEditImage").addClass("d-none");
         previewArea.removeClass("d-none");
-    });
+    }
+    // 📄 أي ملفات أخرى - استخدم filePreviewBox
+    else {
+        const size = formatFileSize(file.size);
+        previewContent.html(`
+            <div class="d-flex align-items-center justify-content-center bg-white rounded p-2 shadow-sm">
+                <span class="me-2">📎</span>
+                <strong>${file.name}</strong>
+                <small class="text-muted ms-2">(${size})</small>
+            </div>
+        `);
+        $("#btnEditImage").addClass("d-none");
+        previewBox.removeClass("d-none");
+    }
+});
 
     // ❌ إلغاء المعاينة
-    $("#btnRemovePreview").on("click", function () {
+       $("#btnRemovePreview").on("click", function () {
         $("#fileInput").val("");
         $("#filePreviewArea").addClass("d-none");
+        $("#filePreviewBox").addClass("d-none");
         $("#filePreviewContent").empty();
+        $("#btnEditImage").addClass("d-none");
     });
 
     // ✏️ تعديل الصورة باستخدام Cropper.js
@@ -526,41 +642,38 @@
 
 
 
-     function appendMessage(m) {
+    function appendMessage(m) {
         let filePreview = "";
         const name = m.fileName || "ملف مرفق";
         const type = (m.fileType || "").toLowerCase();
         const fileUrl = m.fileUrl;
+        const fileSize = m.fileSize || 0;
 
         // 🔹 للصور
-           if (type.startsWith("image/")) {
-        filePreview = `
-            <div class="position-relative mt-2">
-                <img src="${fileUrl}" alt="${name}"
-                     class="chat-image"
-                     style="max-width:200px; max-height:200px; border-radius:12px; object-fit:cover; cursor:pointer;" />
-                <a href="${fileUrl}" download class="btn btn-sm btn-light position-absolute bottom-0 end-0 m-2 shadow-sm">
-                    ⬇️
-                </a>
-            </div>`;
-    }
-
-
+        if (type.startsWith("image/")) {
+            filePreview = `
+                <div class="position-relative mt-2">
+                    <img src="${fileUrl}" alt="${name}"
+                         class="chat-image"
+                         style="max-width:200px; max-height:200px; border-radius:12px; object-fit:cover; cursor:pointer;" />
+                    <a href="${fileUrl}" download="${name}" class="btn btn-sm btn-light position-absolute bottom-0 end-0 m-2 shadow-sm">
+                        ⬇️
+                    </a>
+                </div>`;
+        }
         // 🔹 للفيديو
-          else if (type.startsWith("video/")) {
-        filePreview = `
-            <div class="position-relative mt-2">
-                <video class="chat-video" style="max-width:220px; max-height:200px; border-radius:12px; cursor:pointer;">
-                    <source src="${fileUrl}" type="${type}">
-                    متصفحك لا يدعم تشغيل الفيديو.
-                </video>
-                <a href="${fileUrl}" download class="btn btn-sm btn-light position-absolute bottom-0 end-0 m-2 shadow-sm">
-                    ⬇️
-                </a>
-            </div>`;
-    }
-
-
+        else if (type.startsWith("video/")) {
+            filePreview = `
+                <div class="position-relative mt-2">
+                    <video class="chat-video" style="max-width:220px; max-height:200px; border-radius:12px; cursor:pointer;" controls>
+                        <source src="${fileUrl}" type="${type}">
+                        متصفحك لا يدعم تشغيل الفيديو.
+                    </video>
+                    <a href="${fileUrl}" download="${name}" class="btn btn-sm btn-light position-absolute bottom-0 end-0 m-2 shadow-sm">
+                        ⬇️
+                    </a>
+                </div>`;
+        }
         // 🔹 للصوت
         else if (type.startsWith("audio/")) {
             filePreview = `
@@ -568,46 +681,72 @@
                     <audio controls style="width:180px;">
                         <source src="${fileUrl}" type="${type}">
                     </audio>
-                    <a href="${fileUrl}" download class="btn btn-sm btn-outline-secondary ms-2">⬇️</a>
+                    <a href="${fileUrl}" download="${name}" class="btn btn-sm btn-outline-secondary ms-2">⬇️</a>
                 </div>`;
         }
-
         // 🔹 لباقي الملفات
         else if (fileUrl) {
             filePreview = `
-        <div class="position-relative mt-2">
-            <div class="chat-file d-flex align-items-center bg-light p-2 rounded shadow-sm"
-                 data-file="${fileUrl}" data-type="${type}">
-                <div class="me-2 fs-4">📄</div>
-                <div class="text-truncate">${name}</div>
-                <small class="text-muted ms-auto">${formatFileSize(m.fileSize || 0)}</small>
-            </div>
-            <a href="${fileUrl}" download class="btn btn-sm btn-outline-secondary mt-2">⬇️ تحميل</a>
-        </div>`;
+            <div class="position-relative mt-2">
+                <div class="chat-file d-flex align-items-center p-3 rounded shadow-sm"
+                     data-file="${fileUrl}" data-type="${type}">
+                    <div class="me-2 fs-4">📄</div>
+                    <div class="file-info-container">
+                        <div class="file-name">${name}</div>
+                        <div class="file-details">
+                            <span class="file-size">${formatFileSize(fileSize)}</span>
+                            <span class="file-type">${type.split('/')[1] || 'ملف'}</span>
+                        </div>
+                    </div>
+                </div>
+                <a href="${fileUrl}" download="${name}" class="btn btn-sm btn-outline-secondary mt-2">⬇️ تحميل الملف</a>
+            </div>`;
         }
 
-            const html = `
-    <div class="msg ${m.isMine ? "me" : "other"}" data-id="${m.id}">
-        <div class="msg-content position-relative">
-            ${m.text ? `<div>${m.text}</div>` : ""}
-            ${m.isEdited ? `<small class="text-muted fst-italic">(معدلة)</small>` : ""}
-            ${filePreview ?? ""}
-            <div class="small mt-1 text-end opacity-75">
-                ${new Date(m.createdAtUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            ${m.isMine ? `
-                <div class="msg-actions">
-                    <button class="btn btn-sm btn-light edit-msg">✏️</button>
-                    <button class="btn btn-sm btn-danger delete-msg">🗑️</button>
+        const html = `
+        <div class="msg ${m.isMine ? "me" : "other"}" data-id="${m.id}">
+            <div class="msg-content position-relative">
+                ${m.text ? `<div>${m.text}</div>` : ""}
+                ${filePreview}
+                <div class="small mt-1 text-end opacity-75">
+                    ${new Date(m.createdAtUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
-            ` : ""}
-        </div>
-    </div>`;
+                ${m.isMine ? `
+                    <div class="msg-actions">
+                        <button class="edit-msg" title="تعديل الرسالة">✏️</button>
+                        <button class="delete-msg" title="حذف الرسالة">🗑️</button>
+                    </div>
+                ` : ""}
+            </div>
+        </div>`;
+
+
+        // 🔥 تصميم جديد لـ SweetAlert - أنيق وحديث
+const swalDesign = {
+    customClass: {
+        popup: 'rounded-3xl shadow-2xl border-0',
+        title: 'text-2xl font-bold text-gray-800',
+        htmlContainer: 'text-gray-600 text-lg',
+        confirmButton: 'btn-primary-custom rounded-xl px-8 py-3 font-semibold',
+        cancelButton: 'btn-secondary-custom rounded-xl px-8 py-3 font-semibold',
+        actions: 'gap-4'
+    },
+    buttonsStyling: false,
+    showClass: {
+        popup: 'animate__animated animate__fadeInDown animate__faster'
+    },
+    hideClass: {
+        popup: 'animate__animated animate__fadeOutUp animate__faster'
+    }
+};
+
 
 
         $("#chatBody").append(html);
         $("#chatBody").scrollTop($("#chatBody")[0].scrollHeight);
     }
+
+
 
 
     $(document).on("click", ".edit-msg", function () {
@@ -620,20 +759,21 @@
             input: "textarea",
             inputValue: oldText,
             inputAttributes: {
-                "aria-label": "نص الرسالة"
+                "aria-label": "نص الرسالة",
+                "class": "rounded-2xl p-4 border-2 border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
             },
             showCancelButton: true,
             confirmButtonText: "💾 حفظ التعديل",
             cancelButtonText: "إلغاء",
-            confirmButtonColor: "#2563eb",
-            cancelButtonColor: "#6c757d",
-            background: "#fff",
+            confirmButtonColor: "#7B68EE",
+            cancelButtonColor: "#6B7280",
+            background: "#FFFFFF",
             customClass: {
-                popup: "rounded-4 shadow-lg p-4",
-                title: "fw-bold fs-5 text-primary",
-                confirmButton: "btn btn-primary px-4 fw-bold",
-                cancelButton: "btn btn-secondary px-4 fw-bold"
+                popup: 'rounded-3xl shadow-2xl',
+                confirmButton: 'btn btn-primary px-4 py-2 rounded-xl',
+                cancelButton: 'btn btn-secondary px-4 py-2 rounded-xl'
             },
+            buttonsStyling: false,
             preConfirm: (value) => {
                 if (!value.trim()) {
                     Swal.showValidationMessage("الرجاء إدخال نص الرسالة.");
@@ -643,17 +783,41 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 const newText = result.value;
-                $.post("/Chat/EditMessage", { messageId: msgId, newText }, () => {
-                    msgDiv.find(".msg-content > div:first").text(newText);
-                    if (msgDiv.find(".text-muted.fst-italic").length === 0)
-                        msgDiv.find(".msg-content").append(`<small class="text-muted fst-italic">(معدلة)</small>`);
 
+                $.post("/Chat/EditMessage", { messageId: msgId, newText: newText }, function(response) {
+                    if (response.success) {
+                        // ✅ تحديث النص في الواجهة
+                        msgDiv.find(".msg-content > div:first").text(newText);
+
+                        // ✅ إضافة علامة (معدلة) إذا لم تكن موجودة
+                        if (msgDiv.find(".text-muted.fst-italic").length === 0) {
+                            msgDiv.find(".msg-content").append('<small class="text-muted fst-italic">(معدلة)</small>');
+                        }
+
+                        // ✅ إشعار النجاح
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true,
+                            background: 'linear-gradient(135deg, #7B68EE, #9370DB)',
+                            color: 'white',
+                            customClass: {
+                                popup: 'rounded-2xl shadow-lg'
+                            }
+                        });
+                        Toast.fire({
+                            icon: "success",
+                            title: "تم تعديل الرسالة بنجاح 🎉"
+                        });
+                    }
+                }).fail(function() {
                     Swal.fire({
-                        title: "✅ تم الحفظ",
-                        text: "تم تعديل الرسالة بنجاح.",
-                        icon: "success",
-                        timer: 1200,
-                        showConfirmButton: false
+                        title: "❌ خطأ",
+                        text: "فشل في تعديل الرسالة",
+                        icon: "error",
+                        confirmButtonColor: "#7B68EE"
                     });
                 });
             }
@@ -664,13 +828,13 @@
 
 
 
-        $(document).on("click", ".delete-msg", function () {
+      $(document).on("click", ".delete-msg", function () {
         const msgDiv = $(this).closest(".msg");
         const msgId = msgDiv.data("id");
 
         Swal.fire({
             title: "🗑️ هل أنت متأكد؟",
-            text: "سيتم حذف هذه الرسالة نهائيًا.",
+            text: "سيتم حذف هذه الرسالة نهائيًا ولن تكون مرئية لأي من الطرفين.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
@@ -686,15 +850,36 @@
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post("/Chat/DeleteMessage", { messageId: msgId, deleteForAll: true }, () => {
-                    Swal.fire({
-                        title: "✅ تم الحذف",
-                        text: "تم حذف الرسالة بنجاح.",
-                        icon: "success",
-                        timer: 1300,
-                        showConfirmButton: false
+                $.post("/Chat/DeleteMessage", {
+                    messageId: msgId,
+                    deleteForAll: true
+                }, function(response) {
+                    // 🔥 إخفاء الرسالة فوراً مع تأثير
+                    msgDiv.animate({
+                        opacity: 0,
+                        height: 0,
+                        marginTop: 0,
+                        marginBottom: 0,
+                        paddingTop: 0,
+                        paddingBottom: 0
+                    }, 300, function() {
+                        $(this).remove();
+
+                        // ✅ إظهار إشعار النجاح
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: "top-end",
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true,
+                        });
+                        Toast.fire({
+                            icon: "success",
+                            title: "تم حذف الرسالة بنجاح"
+                        });
                     });
-                    msgDiv.html('<div class="text-muted fst-italic">🚫 تم حذف هذه الرسالة</div>');
+                }).fail(function() {
+                    Swal.fire("❌ خطأ", "فشل في حذف الرسالة", "error");
                 });
             }
         });
@@ -716,11 +901,15 @@
 
 
     // 🧮 تنسيق حجم الملف
-    function formatFileSize(bytes) {
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
         if (bytes < 1024) return `${bytes} B`;
         const kb = bytes / 1024;
         if (kb < 1024) return `${kb.toFixed(1)} KB`;
-        return `${(kb / 1024).toFixed(1)} MB`;
+        const mb = kb / 1024;
+        if (mb < 1024) return `${mb.toFixed(1)} MB`;
+        const gb = mb / 1024;
+        return `${gb.toFixed(1)} GB`;
     }
 
     // 🪟 عند الضغط على الصورة → فتح معاينة كاملة
@@ -876,6 +1065,10 @@
 
    
 </script>
+
+
+
+<script src="~/js/IndexChat.js" asp-append-version="true"></script>
 <!-- 🧩 مكتبة SignalR -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
@@ -940,17 +1133,36 @@
     });
 
        // عند تعديل رسالة
+       // عند تعديل رسالة
     connection.on("MessageEdited", (msg) => {
         const div = $(`.msg[data-id='${msg.id}']`);
         div.find(".msg-content > div:first").text(msg.text);
-        if (div.find(".text-muted.fst-italic").length === 0)
-            div.find(".msg-content").append(`<small class="text-muted fst-italic">(معدلة)</small>`);
+
     });
 
     // عند حذف رسالة
-    connection.on("MessageDeleted", (msg) => {
-        const div = $(`.msg[data-id='${msg.id}']`);
-        div.html('<div class="text-muted fst-italic">🚫 تم حذف هذه الرسالة</div>');
+     // عند حذف رسالة عبر SignalR
+    connection.on("MessageDeleted", (data) => {
+        const msgDiv = $(`.msg[data-id='${data.id}']`);
+
+        if (msgDiv.length > 0) {
+            if (data.deletedCompletely) {
+                // 🔥 حذف كامل - إزالة من الواجهة
+                msgDiv.animate({
+                    opacity: 0,
+                    height: 0,
+                    marginTop: 0,
+                    marginBottom: 0,
+                    paddingTop: 0,
+                    paddingBottom: 0
+                }, 300, function() {
+                    $(this).remove();
+                });
+            } else {
+                // حذف جزئي (للمستخدم الحالي فقط)
+                msgDiv.html('<div class="text-muted fst-italic p-2 text-center">🚫 تم حذف هذه الرسالة</div>');
+            }
+        }
     });
 
 

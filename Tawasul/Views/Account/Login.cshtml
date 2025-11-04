@@ -3,22 +3,70 @@
     ViewData["Title"] = "تسجيل الدخول";
 }
 
-<div class="container mt-5" style="max-width:400px;">
-    <h3 class="mb-3 text-center">تسجيل الدخول</h3>
-    <form asp-action="Login" method="post">
-        <div class="mb-3">
-            <label class="form-label">البريد الإلكتروني</label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" class="text-danger"></span>
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- 🔹 الهيدر -->
+        <div class="auth-header">
+            <span class="auth-logo">Tawasul</span>
+            <p class="auth-subtitle">منصة الدردشة الحديثة</p>
         </div>
-        <div class="mb-3">
-            <label class="form-label">كلمة المرور</label>
-            <input asp-for="Password" class="form-control" type="password" />
-            <span asp-validation-for="Password" class="text-danger"></span>
+
+        <!-- 🔹 الجسم -->
+        <div class="auth-body">
+            <h1 class="auth-title">مرحبًا بعودتك</h1>
+            <p class="auth-description">سجل الدخول لمتابعة المحادثات</p>
+
+            <form asp-action="Login" method="post" class="auth-form">
+                @Html.AntiForgeryToken()
+
+                <!-- 🔹 البريد الإلكتروني -->
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label">
+                        <i class="bi bi-envelope me-1"></i>البريد الإلكتروني
+                    </label>
+                    <input asp-for="Email" class="form-control"
+                           placeholder="ادخل بريدك الإلكتروني"
+                           required />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <!-- 🔹 كلمة المرور -->
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label">
+                        <i class="bi bi-lock me-1"></i>كلمة المرور
+                    </label>
+                    <input asp-for="Password" class="form-control"
+                           type="password"
+                           placeholder="ادخل كلمة المرور"
+                           required />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <!-- 🔹 زر الإرسال -->
+                <button type="submit" class="auth-submit-btn">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    تسجيل الدخول
+                </button>
+
+                <!-- 🔹 الروابط الإضافية -->
+                <div class="auth-links">
+                    <a asp-action="Register" class="auth-link">
+                        <i class="bi bi-person-plus me-1"></i>
+                        إنشاء حساب جديد
+                    </a>
+                </div>
+            </form>
         </div>
-        <button type="submit" class="btn btn-primary w-100">دخول</button>
-        <div class="mt-3 text-center">
-            <a asp-action="Register">إنشاء حساب جديد</a>
-        </div>
-    </form>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+
+    <!-- 🔹 التحقق من الصحة من جانب العميل -->
+    <partial name="_ValidationScriptsPartial" />
+}

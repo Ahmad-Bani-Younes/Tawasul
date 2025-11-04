@@ -120,32 +120,35 @@ namespace Tawasul.Controllers
                     updates.SetProperty(ums => ums.HasSeen, true)
                            .SetProperty(ums => ums.SeenAtUtc, DateTime.UtcNow));
 
-            // ✅ جلب الرسائل + المرفقات
+            // ✅ جلب الرسائل الغير محذوفة فقط
             var messages = await _db.Messages
                 .Include(m => m.Sender)
-                .Include(m => m.Attachments) // ⬅️ أضفنا هذا السطر
-                .Where(m => m.ConversationId == id)
+                .Include(m => m.Attachments)
+                .Where(m => m.ConversationId == id && !m.IsDeleted) // ⬅️ التعديل هنا
                 .OrderBy(m => m.CreatedAtUtc)
                 .Select(m => new
                 {
                     m.Id,
                     m.Text,
                     m.CreatedAtUtc,
+                    m.IsDeleted,
+                    m.IsEdited,
+                    m.ConversationId,
                     IsMine = (m.SenderId == userId),
                     Sender = m.Sender.DisplayName ?? m.Sender.UserName,
                     PhotoUrl = m.Sender.PhotoUrl,
 
-                    // ⬅️ نرجع المرفق إن وجد
-                    FileUrl = m.Attachments.FirstOrDefault() != null
+                    // المرفقات
+                    FileUrl = m.Attachments.Any()
                         ? m.Attachments.First().FilePath
                         : null,
-                    FileType = m.Attachments.FirstOrDefault() != null
+                    FileType = m.Attachments.Any()
                         ? m.Attachments.First().ContentType
                         : null,
-                    FileName = m.Attachments.FirstOrDefault() != null
+                    FileName = m.Attachments.Any()
                         ? m.Attachments.First().OriginalName
                         : null,
-                    FileSize = m.Attachments.FirstOrDefault() != null
+                    FileSize = m.Attachments.Any()
                         ? m.Attachments.First().SizeBytes
                         : 0
                 })
@@ -163,6 +166,7 @@ namespace Tawasul.Controllers
             if (userId == null)
                 return Unauthorized();
 
+            // ✅ التعديل: السماح بإرسال ملف بدون نص
             if (string.IsNullOrWhiteSpace(text) && file == null)
                 return BadRequest("لا يوجد محتوى للإرسال.");
 
@@ -175,7 +179,7 @@ namespace Tawasul.Controllers
             {
                 ConversationId = conversationId,
                 SenderId = userId,
-                Text = string.IsNullOrWhiteSpace(text) ? null : text.Trim(),
+                Text = string.IsNullOrWhiteSpace(text) ? null : text.Trim(), // ✅ null إذا لا يوجد نص
                 CreatedAtUtc = DateTime.UtcNow
             };
 
@@ -192,8 +196,6 @@ namespace Tawasul.Controllers
                     return BadRequest("حجم الملف أكبر من المسموح به (25MB).");
 
                 // ✅ 2. التحقق من الأنواع المسموح بها
-                // ✅ 2. التحقق من الأنواع المسموح بها (مرن أكثر)
-                // ✅ 2. التحقق من الأنواع المسموح بها (مرن)
                 var allowedPrefixes = new[]
                 {
             "image/", "video/", "audio/",
@@ -269,8 +271,6 @@ namespace Tawasul.Controllers
 
             return Json(msgResponse);
         }
-
-
 
         // ... (داخل ChatController)
 
@@ -391,7 +391,10 @@ namespace Tawasul.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
-            var msg = await _db.Messages.FirstOrDefaultAsync(m => m.Id == messageId);
+            var msg = await _db.Messages
+                .Include(m => m.Attachments) // ⬅️ مهم: تضمين المرفقات
+                .FirstOrDefaultAsync(m => m.Id == messageId);
+
             if (msg == null) return NotFound();
 
             // 🔹 إذا حذف للجميع
@@ -399,18 +402,47 @@ namespace Tawasul.Controllers
             {
                 if (msg.SenderId != userId) return Forbid();
 
-                msg.IsDeleted = true;
-                msg.Text = "🚫 تم حذف هذه الرسالة";
+                // 🔥 الحل الجديد: حذف فعلي من قاعدة البيانات
+                if (msg.Attachments != null && msg.Attachments.Any())
+                {
+                    // 🗑️ حذف الملفات الفعلية من السيرفر
+                    foreach (var attachment in msg.Attachments)
+                    {
+                        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", attachment.FilePath.TrimStart('/'));
+                        if (System.IO.File.Exists(filePath))
+                        {
+                            System.IO.File.Delete(filePath);
+                        }
+                    }
+
+                    // 🗑️ حذف المرفقات من قاعدة البيانات
+                    _db.MessageAttachments.RemoveRange(msg.Attachments);
+                }
+
+                // 🗑️ حذف الرسالة نفسها من قاعدة البيانات
+                _db.Messages.Remove(msg);
+
                 await _db.SaveChangesAsync();
 
+                // 📢 بث عبر SignalR للحذف الكامل
                 await _hubContext.Clients.Group(msg.ConversationId.ToString())
-                    .SendAsync("MessageDeleted", new { msg.Id, msg.ConversationId, deleteForAll = true });
+                    .SendAsync("MessageDeleted", new
+                    {
+                        msg.Id,
+                        msg.ConversationId,
+                        deletedCompletely = true // ⬅️ إشارة أن الرسالة حذفت كلياً
+                    });
             }
             else
             {
                 // 🔹 حذف من جهة المستخدم فقط (client-side)
                 await _hubContext.Clients.User(userId)
-                    .SendAsync("MessageDeleted", new { msg.Id, msg.ConversationId, deleteForAll = false });
+                    .SendAsync("MessageDeleted", new
+                    {
+                        msg.Id,
+                        msg.ConversationId,
+                        deletedCompletely = false
+                    });
             }
 
             return Ok();
