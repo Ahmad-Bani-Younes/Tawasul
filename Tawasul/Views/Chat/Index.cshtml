@@ -527,12 +527,70 @@
         }
     });
 
-    $("#btnRemovePreview").on("click", function () {
+    // ✅ معالج زر الإلغاء - تم الإصلاح
+    $("#btnCancelFile").on("click", function () {
+        console.log("🚫 إلغاء الملف");
         $("#fileInput").val("");
-        $("#filePreviewArea").addClass("d-none");
         $("#filePreviewBox").addClass("d-none");
         $("#filePreviewContent").empty();
-        $("#btnEditImage").addClass("d-none");
+        const text = $("#messageInput").val().trim();
+        if (!text) {
+            $("#sendBtn").prop("disabled", true);
+        }
+    });
+
+    // ✅ معالج زر المعاينة - إصلاح نهائي
+    $("#btnPreviewFile").on("click", function () {
+        console.log("👁️ معاينة الملف قبل الإرسال");
+        const file = $("#fileInput")[0].files[0];
+        if (!file) {
+            Swal.fire({
+                title: "⚠️ تنبيه",
+                text: "لا يوجد ملف للمعاينة!",
+                icon: "warning",
+                confirmButtonText: "حسناً",
+                confirmButtonColor: "#2563eb"
+            });
+            return;
+        }
+
+        const type = (file.type || "").toLowerCase();
+        const blobUrl = URL.createObjectURL(file);
+
+        if (type.includes("pdf")) {
+            // PDF - فتح في تبويب جديد
+            console.log("📄 Opening PDF preview:", blobUrl);
+            window.open(blobUrl, '_blank');
+        } 
+        else if (type.includes("word") || type.includes("officedocument.word")) {
+            // Word - رسالة تنبيه
+            Swal.fire({
+                title: "📄 ملف Word",
+                html: "لا يمكن معاينة ملفات Word قبل الإرسال.<br>سيتم إرسال الملف كما هو عند الضغط على إرسال.",
+                icon: "info",
+                confirmButtonText: "حسناً",
+                confirmButtonColor: "#2563eb"
+            });
+        } 
+        else if (type.includes("excel") || type.includes("spreadsheetml") || type.includes("sheet")) {
+            // Excel - رسالة تنبيه
+            Swal.fire({
+                title: "📊 ملف Excel",
+                html: "لا يمكن معاينة ملفات Excel قبل الإرسال.<br>سيتم إرسال الملف كما هو عند الضغط على إرسال.",
+                icon: "info",
+                confirmButtonText: "حسناً",
+                confirmButtonColor: "#2563eb"
+            });
+        } 
+        else {
+            Swal.fire({
+                title: "📄 " + file.name,
+                text: "هذا النوع من الملفات لا يمكن معاينته قبل الإرسال.",
+                icon: "info",
+                confirmButtonText: "حسناً",
+                confirmButtonColor: "#2563eb"
+            });
+        }
     });
 
     // تعديل الصور
@@ -775,7 +833,7 @@
                     
                     // مسح كل شي
                     fabricCanvas.clear();
-                    fabricCanvas.backgroundColor = '#1a1a1a';
+                    fabricCanvas.backgroundColor = '#1f1f1f';
                     
                     // تحديث حجم Canvas
                     fabricCanvas.setWidth(bound.width);
@@ -1117,12 +1175,124 @@
         $("#videoPreviewModal").modal("show");
     });
 
+    // 📄 معالج النقر على الملفات (PDF, Word, Excel)
+    $(document).on("click", ".chat-file", function () {
+        const fileUrl = $(this).data("file");
+        const type = ($(this).data("type") || "").toLowerCase();
+        const fileName = $(this).find(".file-name").text() || "ملف";
+        
+        console.log("🔍 File Click:", { fileUrl, type, fileName });
+        
+        const iframe = $("#previewFileFrame");
+        const downloadBtn = $("#downloadFileBtn");
+
+        downloadBtn.attr("href", fileUrl);
+        downloadBtn.attr("download", fileName);
+
+        // التعامل مع الأنواع المختلفة
+        if (type.includes("pdf")) {
+            // PDF - فتح في تبويب جديد مباشرة
+            console.log("📄 Opening PDF in new tab:", fileUrl);
+            window.open(fileUrl, '_blank');
+        }
+        else if (type.includes("word") || type.includes("officedocument.word") || 
+                 type.includes("msword")) {
+            // Word - استخدام Google Docs Viewer (أكثر استقراراً)
+            console.log("📝 Opening Word:", fileUrl);
+            const fullUrl = window.location.origin + fileUrl;
+            const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
+            
+            iframe.parent().html(`
+                <div class="d-flex flex-column align-items-center justify-content-center" style="height: 65vh; background: #f8f9fa;">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">جارٍ التحميل...</span>
+                    </div>
+                    <p class="text-muted">جارٍ تحميل المستند...</p>
+                    <small class="text-muted mt-2">قد يستغرق الأمر بضع ثوان</small>
+                </div>
+                <iframe id="previewFileFrame" src="${viewerUrl}" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:none; background:#f5f5f5; display:none;"></iframe>
+            `);
+            
+            // إظهار iframe بعد فترة
+            setTimeout(function() {
+                $("#previewFileFrame").show();
+                $("#previewFileFrame").siblings("div").hide();
+            }, 3000);
+            
+            $("#filePreviewModal").modal("show");
+        }
+        else if (type.includes("excel") || type.includes("spreadsheetml") || 
+                 type.includes("sheet")) {
+            // Excel - استخدام Google Docs Viewer
+            console.log("📊 Opening Excel:", fileUrl);
+            const fullUrl = window.location.origin + fileUrl;
+            const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
+            
+            iframe.parent().html(`
+                <div class="d-flex flex-column align-items-center justify-content-center" style="height: 65vh; background: #f8f9fa;">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">جارٍ التحميل...</span>
+                    </div>
+                    <p class="text-muted">جارٍ تحميل الملف...</p>
+                    <small class="text-muted mt-2">قد يستغرق الأمر بضع ثوان</small>
+                </div>
+                <iframe id="previewFileFrame" src="${viewerUrl}" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:none; background:#f5f5f5; display:none;"></iframe>
+            `);
+            
+            // إظهار iframe بعد فترة
+            setTimeout(function() {
+                $("#previewFileFrame").show();
+                $("#previewFileFrame").siblings("div").hide();
+            }, 3000);
+            
+            $("#filePreviewModal").modal("show");
+        }
+        else {
+            // أنواع أخرى - عرض رسالة
+            Swal.fire({
+                title: "📄 " + fileName,
+                text: "هذا النوع من الملفات لا يمكن معاينته مباشرة. يمكنك تحميل الملف.",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonText: "⬇️ تحميل الملف",
+                cancelButtonText: "إلغاء",
+                confirmButtonColor: "#2563eb"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const link = document.createElement('a');
+                    link.href = fileUrl;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+        }
+    });
+
     $('#videoPreviewModal').on('hidden.bs.modal', function () {
         const video = document.getElementById("previewVideo");
         if (video) {
             video.pause();
             video.currentTime = 0;
         }
+    });
+
+    // تنظيف iframe عند إغلاق النافذة
+    $('#filePreviewModal').on('hidden.bs.modal', function () {
+        console.log("🧹 Cleaning up file preview modal");
+        $(this).find(".modal-body").html(`
+            <iframe id="previewFileFrame" src="" 
+                    width="100%" 
+                    height="100%" 
+                    style="border:none; background:#1f2937;"></iframe>
+        `);
     });
 
     // المجموعات والبحث
@@ -1168,7 +1338,7 @@
 
             users.forEach(u => {
                 box.append(`
-                    <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2">
+                    <div class="search-user-card d-flex align-items-center justify-content-between p-2 border rounded mb-2" data-id="${u.id}" style="cursor:pointer;">
                         <div class="d-flex align-items-center gap-2">
                             <img src="${u.photoUrl ?? '/images/default-avatar.png'}" width="35" height="35" class="rounded-circle" />
                             <div>
@@ -1176,16 +1346,15 @@
                                 <small class="text-muted">${u.email ?? ""}</small>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-primary btnStartChat" data-id="${u.id}">بدء محادثة</button>
                     </div>
                 `);
             });
         });
     });
 
-    $(document).on("click", ".btnStartChat", function () {
+    // عند النقر على الكرت يبدأ المحادثة مباشرة
+    $(document).on("click", ".search-user-card", function () {
         const targetUserId = $(this).data("id");
-
         $.post("/Chat/StartChat", { targetUserId }, res => {
             if (res.conversationId) {
                 location.href = `/Chat?open=${res.conversationId}`;
