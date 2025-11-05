@@ -53,7 +53,7 @@
 
                 <tr data-id="@m.UserId">
                     <td>
-                        <img src="@(m.PhotoUrl ?? "/images/default-avatar.png")" class="rounded-circle" width="40" height="40" />
+                        <img src="@(m.PhotoUrl ?? "/images/avatars/default-avatar.png")" class="rounded-circle" width="40" height="40" />
                     </td>
 
                     <td>@m.DisplayName</td>
@@ -205,7 +205,7 @@
                 box.append(`
                     <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2">
                         <div class="d-flex align-items-center gap-2">
-                            <img src="${u.photoUrl ?? '/images/default-avatar.png'}" width="35" height="35" class="rounded-circle" />
+                           <img src="${u.photoUrl ?? '/images/avatars/default-avatar.png'}" width="35" height="35" class="rounded-circle" />
                             <div>
                                 <strong>${u.displayName}</strong><br/>
                                 <small class="text-muted">${u.email}</small>
@@ -294,7 +294,7 @@
                 section.append(`
                     <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-2 bg-white">
                         <div>
-                            <img src="${r.photoUrl ?? '/images/default-avatar.png'}" width="35" height="35" class="rounded-circle me-2" />
+                            <img src="${r.photoUrl ?? '/images/avatars/default-avatar.png'}" width="35" height="35" class="rounded-circle me-2" />
                             <strong>${r.displayName}</strong>
                             <small class="text-muted d-block">${r.email}</small>
                         </div>

@@ -20,7 +20,7 @@
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
+<body data-user-id="@(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "")">
     <!-- 🔹 الهيدر الجديد -->
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">

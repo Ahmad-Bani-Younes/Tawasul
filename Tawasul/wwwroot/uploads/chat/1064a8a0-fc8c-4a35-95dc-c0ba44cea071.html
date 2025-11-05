@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>تسجيل الدخول — DM</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --bg:#f6f9fc; --surface:#fff; --ink:#0f172a; --muted:#64748b; --line:#e5e9f2; --primary:#0ea5e9; --primary-d:#0284c7; --danger:#b91c1c; --ok:#16a34a; }
+  *{box-sizing:border-box} html,body{height:100%;margin:0;font-family:'Tajawal',system-ui,Segoe UI,Arial}
+  body{background:var(--bg);display:grid;place-items:center;color:var(--ink)}
+  .card{width:min(480px,92vw);background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 30px rgba(2,6,23,.06);padding:18px;display:grid;gap:12px}
+  h1{margin:0 0 6px;font-size:22px;font-weight:800;text-align:center}
+  .row{display:grid;gap:8px}
+  input{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px}
+  .btn{cursor:pointer;border-radius:12px;border:1px solid var(--line);padding:12px 14px;font-weight:800}
+  .btn.primary{background:linear-gradient(180deg,var(--primary),var(--primary-d));color:#fff;border-color:var(--primary-d)}
+  .muted{color:var(--muted);font-size:13px;text-align:center}
+  .msg{min-height:18px;font-size:13px}
+  .err{color:var(--danger)} .ok{color:var(--ok)}
+  a{color:#0369a1;text-decoration:none}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>تسجيل الدخول</h1>
+    <div class="row">
+      <input id="username" placeholder="اسم المستخدم" />
+      <input id="password" type="password" placeholder="كلمة المرور" />
+      <button id="btnLogin" class="btn primary">دخول</button>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="muted">ما عندك حساب؟ <a href="register.html">إنشاء حساب</a></div>
+  </div>
+
+<script>
+/*** CONFIG ***/
+const BASE = 'https://68fe74667c700772bb13c31e.mockapi.io/';
+const USERS = 'users';
+const SESSION_KEY = 'dm.session.v2';
+const CHAT_PAGE = 'index.html';
+
+/*** UTILS ***/
+async function sha256(str){
+ const enc = new TextEncoder().encode(str);
+ const buf = await crypto.subtle.digest('SHA-256', enc);
+ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function fetchJSON(url,opts={}) {
+ const res = await fetch(url,{headers:{'content-type':'application/json'},method:opts.method||'GET',body:opts.body?JSON.stringify(opts.body):undefined});
+ if(!res.ok){ let t=''; try{t=await res.text();}catch{} throw new Error('HTTP '+res.status+' '+t); }
+ return res.json();
+}
+
+//
+// ‼️ هذا هو الكود المُعدّل لحل مشكلة الفلترة ‼️
+//
+const UsersApi = {
+ async findByUsername(u){ 
+    // 1. نجلب كل المستخدمين
+    const allUsers = await fetchJSON(`${BASE}/${USERS}`); 
+    // 2. نبحث عن المستخدم في الجافاسكريبت
+    const found = allUsers.find(user => user.username.toLowerCase() === u.toLowerCase());
+    return found || null; // نرجع المستخدم إذا وجدناه
+  }
+};
+
+function saveSession(me){ sessionStorage.setItem(SESSION_KEY, JSON.stringify({me, peerId:null, threadKey:null})); }
+
+/*** HANDLERS ***/
+document.getElementById('btnLogin').onclick = async ()=>{
+ const u = document.getElementById('username').value.trim();
+ const p = document.getElementById('password').value;
+ const msg = document.getElementById('msg'); msg.textContent=''; msg.className='msg';
+ if(!u || !p){ msg.textContent='أدخل اسم المستخدم وكلمة المرور'; msg.classList.add('err'); return; }
+ try{
+  const user = await UsersApi.findByUsername(u);
+  if(!user){ msg.textContent='المستخدم غير موجود'; msg.classList.add('err'); return; }
+  const h = await sha256(p);
+  if(h !== user.passHash){ msg.textContent='كلمة مرور غير صحيحة'; msg.classList.add('err'); return; }
+  saveSession({ id:user.id, name:user.displayName||user.username, username:user.username });
+  msg.textContent='تم تسجيل الدخول'; msg.classList.add('ok');
+  location.href = CHAT_PAGE;
+ }catch(e){ 
+    console.error("Error during login:", e);
+    msg.textContent='خطأ اتصال'; msg.classList.add('err'); 
+  }
+};
+document.addEventListener('keyup', e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
+</script>
+</body>
+</html>

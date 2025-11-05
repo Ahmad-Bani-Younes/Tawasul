@@ -293,7 +293,7 @@ body {
     }
 
 /* ✏️ أزرار التعديل والحذف - التصميم الجديد */
-.msg-actions {
+/*.msg-actions {
     position: absolute;
     top: -25px;
     display: flex;
@@ -317,9 +317,9 @@ body {
 .msg:hover .msg-actions {
     opacity: 1;
     transform: translateY(0);
-}
+}*/
 
-.msg-actions button {
+/*.msg-actions button {
     width: 32px;
     height: 32px;
     display: flex;
@@ -331,9 +331,9 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease-in-out;
     background: var(--surface);
-}
+}*/
 
-.msg-actions .edit-msg {
+/*.msg-actions .edit-msg {
     color: var(--primary);
 }
 
@@ -351,7 +351,7 @@ body {
         background-color: var(--error);
         color: white;
         transform: scale(1.05);
-    }
+    }*/
 
 /* هيدر المحادثة - التصميم الجديد */
 #chatHeader {
@@ -522,7 +522,7 @@ body {
         border-color: var(--primary-light);
         transform: translateY(-2px);
         box-shadow: 0 4px 12px var(--shadow);
-        cursor: pointer; /* 👈 إضافة المؤشر */
+        /*cursor: pointer;*/ /* 👈 إضافة المؤشر */
     }
 
     .chat-file .me-2 {
@@ -868,9 +868,12 @@ body {
     border-color: var(--border) !important;
 }
 
-.bg-light {
+.chat-body .bg-light,
+.msg .bg-light,
+#filePreviewContent .bg-light {
     background-color: var(--background) !important;
 }
+
 
 .shadow-sm {
     box-shadow: 0 2px 4px var(--shadow) !important;
@@ -1012,6 +1015,29 @@ body {
     }
 }
 
+
+/* إبراز الرسالة الهدف عند القفز إليها */
+.msg.jump-highlight .msg-content {
+    outline: 3px solid var(--primary);
+    box-shadow: 0 0 0 4px rgba(123,104,238,.15);
+    animation: jumpFlash .9s ease-in-out 0s 2;
+}
+
+@keyframes jumpFlash {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+
 .msg-actions button:hover {
     animation: gentleBounce 0.5s ease;
 }
@@ -1049,11 +1075,11 @@ body {
 /* --- 🔽 (أضف هذا الكود الجديد في نهاية الـ <style>) 🔽 --- */
 
 /* 1. الحاوية السفلية للأزرار */
-.chat-sidebar {
+/*.chat-sidebar {*/
     /* (نضيف هذا ليتم تقسيم الشريط الجانبي بشكل مرن) */
-    display: flex;
+    /*display: flex;
     flex-direction: column;
-}
+}*/
 
 #chatList, #groupList {
     flex-grow: 1; /* (تجعل القوائم تملأ المساحة المتاحة) */
@@ -1304,3 +1330,360 @@ emoji-picker {
     border: 1px solid #eee;
 }
 /* --- 🔼 (انتهى التعديل) 🔼 --- */
+
+
+/* بطاقة الرّد الأنيقة */
+/*.chat-input {
+    position: relative;
+}*/
+
+    /* لما تكون في وضع الرّد، نزّود مسافة علوية */
+    .chat-input.is-replying {
+        padding-top: 64px;
+    }
+
+.reply-chip {
+    position: absolute;
+    top: 10px; /* تظهر فوق حقل الكتابة */
+    right: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 18px var(--shadow);
+    border-radius: 14px;
+    padding: 10px 12px 10px 44px; /* مساحة لزر الإغلاق يسار */
+    animation: fadeIn .2s ease-out both;
+}
+
+.reply-chip__bar {
+    width: 4px;
+    align-self: stretch;
+    background: var(--gradient);
+    border-radius: 4px;
+}
+
+.reply-chip__content {
+    min-width: 0; /* للسماح بالقص */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.reply-chip__title {
+    font-size: .8rem;
+    color: var(--text-secondary);
+    line-height: 1;
+}
+
+.reply-chip__snippet {
+    font-size: .92rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* زر الإغلاق */
+.reply-chip__close {
+    position: absolute;
+    left: 8px; /* يسار لأننا RTL */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    background: #fff;
+    color: #ef4444;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: .15s ease;
+}
+
+    .reply-chip__close:hover {
+        background: #ef4444;
+        color: #fff;
+        border-color: #ef4444;
+    }
+
+
+.reply-chip {
+    transition: all .2s ease;
+}
+
+.chat-input.is-replying #messageInput {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+}
+
+.reply-text {
+    direction: rtl;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reply-box {
+    cursor: pointer;
+}
+
+.edit-modal .modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0,0,0,.12)
+}
+
+.edit-modal .modal-header, .edit-modal .modal-footer {
+    background: #fff;
+    border-color: var(--border)
+}
+
+.edit-modal .nav-pills .nav-link {
+    border-radius: 10px;
+    font-weight: 600
+}
+
+    .edit-modal .nav-pills .nav-link.active {
+        background: var(--primary);
+        color: #fff
+    }
+
+
+#peerInfoModal .modal-content {
+    box-shadow: 0 20px 60px rgba(0,0,0,.12);
+}
+
+#piOnlineDot.bg-success {
+    background: #10b981 !important;
+}
+
+#piOnlineDot.bg-secondary {
+    background: #94a3b8 !important;
+}
+#chatHeader {
+    /* كان عندك justify-content: space-between؛ خليه افتراضي */
+    padding: 15px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.info-btn {
+    margin-inline-start: .25rem;
+}
+/* يزيد فراغ بسيط */
+.chat-header-rtl .d-flex {
+    gap: 12px;
+}
+
+#btnPeerInfo, #btnGroupInfo {
+    align-self: center;
+}
+.skel {
+    position: relative;
+    background: #e9eef5;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+    .skel::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+        animation: shimmer 1s infinite;
+    }
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+
+.media-filters .btn {
+    border-radius: 10px !important;
+    font-weight: 600;
+}
+
+    .media-filters .btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+
+/* 🆕 بطاقات معاينة الروابط */
+.link-card {
+    border: 1px solid var(--border, #e5e7eb);
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+
+    .link-card .lc-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .link-card .lc-favicon {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        flex: 0 0 18px;
+    }
+
+    .link-card .lc-domain {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .link-card .lc-title {
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        font-size: 14px;
+    }
+
+    .link-card .lc-desc {
+        font-size: 13px;
+        color: #4b5563;
+        line-height: 1.4;
+        max-height: 3.6em;
+        overflow: hidden;
+    }
+
+    .link-card .lc-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .link-card .lc-badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid;
+    }
+
+        .link-card .lc-badge.safe {
+            color: #065f46;
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .link-card .lc-badge.warn {
+            color: #92400e;
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .link-card .lc-badge.dang {
+            color: #991b1b;
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+    .link-card a.lc-open {
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+/* ✅ جعل البطاقة تتصرف بشكل مرن داخل الفقاعة */
+.link-card {
+    max-width: 100%;
+}
+
+    /* عنوان ووصف قابلة للقص */
+    .link-card .lc-title,
+    .link-card .lc-desc {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* سطرين كحد أقصى للعنوان/الوصف */
+        -webkit-box-orient: vertical;
+    }
+
+    /* الدومين لا يتمدّد بلا حدود */
+    .link-card .lc-domain {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* لو ما فيه وصف، ما تحجز مساحة كبيرة */
+    .link-card .lc-desc:empty {
+        display: none;
+    }
+
+
+    /* يمنع العناصر الفارغة في البطاقة من حجز ارتفاع */
+    .link-card .lc-header:empty,
+    .link-card .lc-actions:empty {
+        display: none;
+    }
+
+
+
+    /* ✅ اجبار التفاف الكلمات/الروابط الطويلة */
+    .msg .msg-content,
+    .msg .msg-text,
+    .msg .msg-content a,
+    .link-card,
+    .link-card * {
+        min-width: 0;
+        max-width: 100%;
+        word-break: break-word; /* يكسّر كلمات طويلة */
+        overflow-wrap: anywhere; /* يسمح بالكسر بأي مكان */
+    }
+
+/* ✅ عرض الفقاعة: عرض مناسب + قابل للتكيّف */
+.msg .msg-content {
+    display: inline-block;
+    width: fit-content;
+    max-width: clamp(260px, 70vw, 560px); /* لا تتعدى حدود منطقية */
+    box-sizing: border-box;
+}
+
+    /* لو الرسالة مجرد رابط فقط، خلّي البطاقة تتمدد داخل الحد */
+    .msg .msg-content:has(.link-card) {
+        padding: 8px 10px; /* تقليل الحشو قليلاً مع البطاقة */
+    }
+
+
+/* للحالات المتطرفة (سلسلة بلا أي فواصل) */
+.u-break {
+    word-break: break-all; /* أقوى شوي */
+}
+
+
+#searchResults .hit {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+    #searchResults .hit:hover {
+        background: #f8fafc;
+    }
+
+    #searchResults .hit .meta {
+        color: #64748b;
+    }
+
+#searchResults mark {
+    background: #fff3cd;
+    padding: 0 2px;
+    border-radius: 3px;
+}

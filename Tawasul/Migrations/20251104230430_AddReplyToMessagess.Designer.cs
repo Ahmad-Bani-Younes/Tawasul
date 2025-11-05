@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tawasul.Data;
 
@@ -11,9 +12,11 @@ using Tawasul.Data;
 namespace Tawasul.Migrations
 {
     [DbContext(typeof(TawasulDbContext))]
-    partial class TawasulDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251104230430_AddReplyToMessagess")]
+    partial class AddReplyToMessagess
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -222,16 +225,10 @@ namespace Tawasul.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("ShowEmailToOthers")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("ShowLastSeen")
                         .HasColumnType("bit");
 
                     b.Property<bool>("ShowOnlineStatus")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowPhoneToOthers")
                         .HasColumnType("bit");
 
                     b.Property<bool>("TwoFactorEnabled")

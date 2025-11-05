@@ -15,6 +15,9 @@ namespace Tawasul.Models
         public bool EnableNotifications { get; set; } = true;
         public bool EnableSounds { get; set; } = true;
 
+        public bool ShowEmailToOthers { get; set; } = false;
+        public bool ShowPhoneToOthers { get; set; } = false;
+
         public ICollection<ConversationMember> Conversations { get; set; } = new List<ConversationMember>();
         public ICollection<Message> Messages { get; set; } = new List<Message>();
     }

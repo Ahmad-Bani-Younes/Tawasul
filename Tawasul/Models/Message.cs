@@ -1,4 +1,6 @@
-﻿namespace Tawasul.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Tawasul.Models
 {
     public class Message
     {
@@ -14,6 +16,13 @@
 
         public bool IsEdited { get; set; } = false;
         public bool IsDeleted { get; set; } = false;
+
+        public long? ReplyToMessageId { get; set; }
+
+        [ForeignKey(nameof(ReplyToMessageId))]
+        public Message? ReplyTo { get; set; }
+
+
 
         public ICollection<MessageAttachment> Attachments { get; set; } = new List<MessageAttachment>();
         public ICollection<UserMessageStatus> Statuses { get; set; } = new List<UserMessageStatus>();
